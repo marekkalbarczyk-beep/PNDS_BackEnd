@@ -1,0 +1,6 @@
+@PNDS_BackEnd_Prod_HostAddress = http://localhost:5023
+
+GET {{PNDS_BackEnd_Prod_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

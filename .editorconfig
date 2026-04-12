@@ -1,0 +1,4 @@
+﻿[*.cs]
+
+# CS8604: Możliwy argument odwołania o wartości null.
+# dotnet_diagnostic.CS8604.severity = none
