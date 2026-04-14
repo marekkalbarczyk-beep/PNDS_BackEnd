@@ -1,0 +1,84 @@
+﻿using PNDS_BackEnd_Dev.OPC_Client;
+
+namespace PNDS_BackEnd_Dev.Services
+{
+    public class J2ShipData
+    {
+        public string J2ShipName { get; set; } = "";
+        public int J2ShipDirection { get; set; } = -1;
+        public bool J2Status { get; set; } = false;
+    }
+
+    public interface IJ2ShipService
+    {
+        J2ShipData GetCurrentData();
+    }
+
+
+
+    public class J2ShipService : IJ2ShipService, IDisposable
+    {
+        private IOPCClient _opcClient;
+        private ILogger<J2ShipService> _logger;
+
+        private J2ShipData _currentData = new();
+        private readonly object _lock = new(); // Dla bezpieczeństwa wątkowego
+        private readonly CancellationTokenSource _cts = new();
+
+        public J2ShipService( IOPCClient oPC, ILogger<J2ShipService> logger)
+        {
+
+            _logger = logger;
+            _opcClient = oPC;
+            _ = RefreshLoop();
+
+          //  _logger.LogInformation("Creating J2 ShipDataReader");
+        }
+
+        public J2ShipData GetCurrentData()
+            {
+            lock (_lock)
+            {
+                // Zwracamy kopię, aby nikt "z zewnątrz" nie zmienił danych w serwisie
+                return new J2ShipData
+                {
+                    J2ShipName = _currentData.J2ShipName,
+                    J2ShipDirection = _currentData.J2ShipDirection,
+                    J2Status = _currentData.J2Status
+                };
+            }
+        }
+
+        private async Task RefreshLoop()
+        {
+            var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(5000));
+            while (await timer.WaitForNextTickAsync(_cts.Token))
+            {
+                if (_opcClient.OPC_Client_Connected())
+                {
+                    // Odczyt danych z OPC
+#if DEBUG
+                    _logger.LogInformation("Odczyt danych z OPC: J2ShipDataService");
+#endif
+                    var tmpName = _opcClient.OPC_Read<String>("ns=1;s=t|SERVER1::PLC/ShipData2.ShipName");
+                    var tmpDir = _opcClient.OPC_Read<int>("ns=1;s=t|SERVER1::PLC/ShipData2.HullDirection");
+
+                    lock (_lock)
+                    {
+                        _currentData.J2ShipName = tmpName.Value ?? String.Empty;
+                        _currentData.J2ShipDirection = tmpDir.Value;
+                        _currentData.J2Status = tmpName.Status & tmpDir.Status;
+                    }
+                }
+                else
+                {
+                    lock (_lock) { _currentData.J2Status = false; }
+                    await _opcClient.Connect();
+                }
+            }
+        }
+
+        public void Dispose() => _cts.Cancel();
+
+    }
+}
