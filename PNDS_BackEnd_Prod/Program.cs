@@ -1,6 +1,7 @@
 using System.Text;
 using Microsoft.AspNetCore.Mvc.NewtonsoftJson;
 using Microsoft.IdentityModel.Tokens;
+using PNDS_BackEnd_Prod.OPC_Client;
 using PNDS_BackEnd_Prod.OPC_Repos;
 using PNDS_BackEnd_Prod.Services;
 using Serilog;
@@ -79,6 +80,8 @@ builder.Services.AddSingleton<J1BerthingInterface, J1BerthingRepo>();
 builder.Services.AddSingleton<J2BerthingInterface, J2BerthingRepo>();
 //builder.Services.AddSingleton<ShipDataInterface, ShipDataRepo>();
 builder.Services.AddControllers().AddNewtonsoftJson();
+
+//builder.Services.AddSingleton<IOPCClient,OPCClient>();
 
 
 builder.Services.AddControllers();

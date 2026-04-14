@@ -17,8 +17,8 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.5" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="10.0.5" />
-    <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Client" Version="1.5.374.158" />
-    <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Core" Version="1.5.374.158" />
+    <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Client" Version="1.5.376.244" />
+    <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Core" Version="1.5.376.244" />
     <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
     <PackageReference Include="Serilog.Expressions" Version="5.0.0" />
     <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />

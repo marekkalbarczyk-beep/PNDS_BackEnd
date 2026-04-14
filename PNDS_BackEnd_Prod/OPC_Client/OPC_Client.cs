@@ -13,7 +13,17 @@ using Serilog.Events;
 namespace PNDS_BackEnd_Prod.OPC_Client
 {
 
-    public class OPCClient
+    //public interface IOPCClient
+    //{
+    //    Task Connect();
+    //    bool OPC_Client_Connected();
+    //    bool OPC_Read_String(string key, out string value);
+    //    bool OPC_Read_Float(string key, out float value);
+    //    bool OPC_Read_Int(string key, out int value);
+    //    void OPC_Client_Disconnect();
+    //}
+
+    public class OPCClient//: IOPCClient
     {
 
         //private readonly ILogger<OPCClient> _logger;
@@ -87,7 +97,7 @@ namespace PNDS_BackEnd_Prod.OPC_Client
                         AppConfiguration = await AppInstance.LoadApplicationConfiguration(silent: false).ConfigureAwait(false);
                         AppConfiguration.SecurityConfiguration.SuppressNonceValidationErrors = true;
 
-                        bool haveAppCertificate = await AppInstance.CheckApplicationInstanceCertificate(false, minimumKeySize: 0).ConfigureAwait(false);
+                        bool haveAppCertificate = await AppInstance.CheckApplicationInstanceCertificates(silent: false).ConfigureAwait(false);
 
                         if (!haveAppCertificate)
                         {

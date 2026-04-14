@@ -30,7 +30,12 @@
       <StorePath>c:/PNDS/pki/trusted</StorePath>
     </TrustedPeerCertificates>
 
-    <!-- The directory used to store invalid certificates for later review by the administrator. -->
+	  <UserIssuerCertificates>
+		  <StoreType>Directory</StoreType>
+		  <StorePath>c:/PNDS/pki/UserIssuer</StorePath>
+	  </UserIssuerCertificates>
+
+	  <!-- The directory used to store invalid certificates for later review by the administrator. -->
     <RejectedCertificateStore>
       <StoreType>Directory</StoreType>
       <StorePath>c:/PNDS/pki/rejected</StorePath>
