@@ -203,13 +203,13 @@ namespace PNDS_BackEnd_Dev.OPC_Client
 
         }
 
-        public async Task<OpcResult<T>> OPC_Read<T>(string key)
+        public async Task<OpcResult<T>> OPC_Read<T>(string nodeId)
         {
             try
             {
                 if (session != null && session.Connected)
                 {
-                    DataValue rawValue = await session.ReadValueAsync(new NodeId(key)).ConfigureAwait(false);
+                    DataValue rawValue = await session.ReadValueAsync(new NodeId(nodeId)).ConfigureAwait(false);
                     if (rawValue != null)
                     {
                         T convertedValue = (T)Convert.ChangeType(rawValue.Value, typeof(T));
@@ -225,7 +225,7 @@ namespace PNDS_BackEnd_Dev.OPC_Client
             }
             catch (Exception ex)
             {
-                 _logger.LogWarning(" OPC Read failed with key " + key);
+                 _logger.LogWarning(" OPC Read failed with key " + nodeId);
                 _logger.LogWarning(ex.Message);
                 if (ex.Message == "BadNotReadable")
                 {
@@ -320,6 +320,53 @@ namespace PNDS_BackEnd_Dev.OPC_Client
             catch (Exception ex)
             {
                 _logger.LogError("Błąd odczytu grupowego: {Msg}", ex.Message);
+                if (ex.Message == "BadNotReadable")
+                {
+                    //do nothing
+                }
+                else if (ex.Message == "BadSessionIdInvalid")
+                {
+                    if (session != null)
+                    {
+                        session.Dispose();
+                        _logger.LogWarning("Disposing OPCClient session");
+                    }
+                }
+                else
+                {
+                    if (!ConnectionInProgress)
+                    {
+                        ConnectionInProgress = true;
+                        if (session != null)
+                        {
+                            try
+                            {
+                                _logger.LogInformation("OPCClient trying to reconnect");
+                                Task t = Task.Run(() => session.ReconnectAsync());
+                                t.Wait();
+                            }
+                            catch (Exception ex2)
+                            {
+                                _logger.LogError(" Reconnect failed: " + ex2.Message);
+                                session.Dispose();
+                            }
+                        }
+                        else
+                        {
+                            try
+                            {
+                                _logger.LogInformation("OPCClient trying to create new session");
+                                Task t = Task.Run(() => this.Connect());
+                                t.Wait();
+                            }
+                            catch (Exception ex3)
+                            {
+                                _logger.LogError(" Reconnect failed: " + ex3.Message);
+                            }
+                        }
+                        ConnectionInProgress = false;
+                    }
+                }
             }
             return results;
         }

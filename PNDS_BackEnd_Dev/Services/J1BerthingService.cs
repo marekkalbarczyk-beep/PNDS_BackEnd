@@ -37,6 +37,13 @@ namespace PNDS_BackEnd_Dev.Services
             "ns=1;s=t|SERVER2::B01LASER_A/SPEED.Vsgn",
             "ns=1;s=t|SERVER2::B01LASER_B/SPEED.Vsgn"
         };
+
+        // Licznik czasu
+        private DateTime _lastRequestTime = DateTime.MinValue;
+        private bool _isPollingActive = false;
+        private bool _sleepMessage = false;
+        private readonly TimeSpan _timeout = TimeSpan.FromMinutes(2);
+
         public J1BerthingService( IOPCClient oPC, ILogger<J1BerthingService> logger)
         {
 
@@ -51,6 +58,9 @@ namespace PNDS_BackEnd_Dev.Services
             {
             lock (_lock)
             {
+                _lastRequestTime = DateTime.Now;
+                _isPollingActive = true;
+                _sleepMessage = false;
                 // Zwracamy kopię, aby nikt "z zewnątrz" nie zmienił danych w serwisie
                 return new J1BerthingData
                 {
@@ -69,33 +79,53 @@ namespace PNDS_BackEnd_Dev.Services
             var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(1000));
             while (await timer.WaitForNextTickAsync(_cts.Token))
             {
-                if (_opcClient.OPC_Client_Connected())
-                {
-                    // Odczyt danych z OPC
-#if DEBUG
-                    _logger.LogInformation("Odczyt danych z OPC: J1BerthingData");
-#endif
-                    var results = await _opcClient.OPC_ReadMultiple(_tags);
 
-                    lock (_lock)
+                bool shouldPoll;
+                lock (_lock)
+                {
+                    shouldPoll = (DateTime.Now - _lastRequestTime) < _timeout;
+                    _isPollingActive = shouldPoll;
+                }
+
+                if (shouldPoll)
+                {
+
+                    if (_opcClient.OPC_Client_Connected())
                     {
-                        if (results.Count == _tags.Count && results.All(r => r.Status))
+                        // Odczyt danych z OPC
+#if DEBUG
+                        _logger.LogInformation("Odczyt danych z OPC: J1BerthingData");
+#endif
+                        var results = await _opcClient.OPC_ReadMultiple(_tags);
+
+                        lock (_lock)
                         {
-                            _currentData.J1Angle = Convert.ToInt32(results[0].Value); 
-                            _currentData.J1Laser_L_Distance = Convert.ToSingle(results[1].Value);
-                            _currentData.J1Laser_R_Distance = Convert.ToSingle(results[2].Value); 
-                            _currentData.J1Laser_L_Speed = Convert.ToSingle(results[3].Value); ;
-                            _currentData.J1Laser_R_Speed = Convert.ToSingle(results[4].Value); ;
-                            _currentData.J1Status = true;
+                            if (results.Count == _tags.Count && results.All(r => r.Status))
+                            {
+                                _currentData.J1Angle = Convert.ToInt32(results[0].Value);
+                                _currentData.J1Laser_L_Distance = Convert.ToSingle(results[1].Value);
+                                _currentData.J1Laser_R_Distance = Convert.ToSingle(results[2].Value);
+                                _currentData.J1Laser_L_Speed = Convert.ToSingle(results[3].Value); ;
+                                _currentData.J1Laser_R_Speed = Convert.ToSingle(results[4].Value); ;
+                                _currentData.J1Status = true;
+                            }
                         }
                     }
+                    else //if (_opcClient.OPC_Client_Connected())
+                    {
+                        lock (_lock) { _currentData.J1Status = false; }
+                        await _opcClient.Connect();
+                    }
                 }
-                else
+                else  //shouldPool
                 {
-                    lock (_lock) { _currentData.J1Status = false; }
-                    await _opcClient.Connect();
+                    if (!_sleepMessage)
+                    {
+                        _logger.LogInformation("OPC Polling is sleeping: J1BerthingService");
+                        _sleepMessage = true;
+                    }
                 }
-            }
+            }//while
         }
 
         public void Dispose() => _cts.Cancel();

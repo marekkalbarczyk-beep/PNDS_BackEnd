@@ -25,6 +25,12 @@ namespace PNDS_BackEnd_Dev.Services
         private readonly object _lock = new(); // Dla bezpieczeństwa wątkowego
         private readonly CancellationTokenSource _cts = new();
 
+        // Licznik czasu
+        private DateTime _lastRequestTime = DateTime.MinValue;
+        private bool _isPollingActive = false;
+        private bool _sleepMessage = false;
+        private readonly TimeSpan _timeout = TimeSpan.FromMinutes(2);
+
         public J2ShipService( IOPCClient oPC, ILogger<J2ShipService> logger)
         {
 
@@ -39,6 +45,9 @@ namespace PNDS_BackEnd_Dev.Services
             {
             lock (_lock)
             {
+                _lastRequestTime = DateTime.Now;
+                _isPollingActive = true;
+                _sleepMessage = false;
                 // Zwracamy kopię, aby nikt "z zewnątrz" nie zmienił danych w serwisie
                 return new J2ShipData
                 {
@@ -54,33 +63,51 @@ namespace PNDS_BackEnd_Dev.Services
             var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(5000));
             while (await timer.WaitForNextTickAsync(_cts.Token))
             {
-                if (_opcClient.OPC_Client_Connected())
+                bool shouldPoll;
+                lock (_lock)
                 {
-                    // Odczyt danych z OPC
-#if DEBUG
-                    _logger.LogInformation("Odczyt danych z OPC: J2ShipDataService");
-#endif
-                    var nameTask = _opcClient.OPC_Read<String>("ns=1;s=t|SERVER1::PLC/ShipData2.ShipName");
-                    var dirTask = _opcClient.OPC_Read<int>("ns=1;s=t|SERVER1::PLC/ShipData2.HullDirection");
+                    shouldPoll = (DateTime.Now - _lastRequestTime) < _timeout;
+                    _isPollingActive = shouldPoll;
+                }
 
-                    await Task.WhenAll(nameTask, dirTask);
-                    var nameRes = await nameTask;
-                    var dirRes = await dirTask;
-
-
-                    lock (_lock)
+                if (shouldPoll)
+                {
+                    if (_opcClient.OPC_Client_Connected())
                     {
-                        _currentData.J2ShipName = nameRes.Value ?? String.Empty;
-                        _currentData.J2ShipDirection = dirRes.Value;
-                        _currentData.J2Status = nameRes.Status & dirRes.Status;
+                        // Odczyt danych z OPC
+#if DEBUG
+                        _logger.LogInformation("Odczyt danych z OPC: J2ShipDataService");
+#endif
+                        var nameTask = _opcClient.OPC_Read<String>("ns=1;s=t|SERVER1::PLC/ShipData2.ShipName");
+                        var dirTask = _opcClient.OPC_Read<int>("ns=1;s=t|SERVER1::PLC/ShipData2.HullDirection");
+
+                        await Task.WhenAll(nameTask, dirTask);
+                        var nameRes = await nameTask;
+                        var dirRes = await dirTask;
+
+
+                        lock (_lock)
+                        {
+                            _currentData.J2ShipName = nameRes.Value ?? String.Empty;
+                            _currentData.J2ShipDirection = dirRes.Value;
+                            _currentData.J2Status = nameRes.Status & dirRes.Status;
+                        }
+                    }
+                    else
+                    {
+                        lock (_lock) { _currentData.J2Status = false; }
+                        await _opcClient.Connect();
+                    }//opcclientConnected
+                }
+                else  //shouldPool
+                {
+                    if (!_sleepMessage)
+                    {
+                        _logger.LogInformation("OPC Polling is sleeping: J2ShipService");
+                        _sleepMessage = true;
                     }
                 }
-                else
-                {
-                    lock (_lock) { _currentData.J2Status = false; }
-                    await _opcClient.Connect();
-                }
-            }
+            }//while
         }
 
         public void Dispose() => _cts.Cancel();

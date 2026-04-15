@@ -51,6 +51,25 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Host.UseSerilog();
 
+
+var jwtKey = builder.Configuration["BearerJWT:Key"] ??= "Default_T43_M0st_Complicated_Protected_K3Y_1n_Th3_Univers3";
+
+var key = Encoding.ASCII.GetBytes(jwtKey);
+
+builder.Services.AddAuthentication(options => {
+    options.DefaultAuthenticateScheme = "JwtBearer";
+    options.DefaultChallengeScheme = "JwtBearer";
+})
+.AddJwtBearer("JwtBearer", options => {
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(key),
+        ValidateIssuer = false,
+        ValidateAudience = false
+    };
+});
+
 // Add services to the container.
 
 builder.Services.AddControllers();
@@ -66,6 +85,12 @@ builder.Services.AddSingleton<IOPCClient, OPCClient>();
 builder.Services.AddSingleton<IJ1ShipService, J1ShipService>();
 builder.Services.AddSingleton<IJ2ShipService, J2ShipService>();
 builder.Services.AddSingleton<IJ1BerthingService, J1BerthingService>();
+builder.Services.AddSingleton<IJ2BerthingService, J2BerthingService>();
+builder.Services.AddSingleton<IJ1SeaStateService, J1SeaStateService>();
+builder.Services.AddSingleton<IJ2SeaStateService, J2SeaStateService>();
+
+builder.Services.AddHttpClient<RecaptchaService>();
+builder.Services.AddScoped<ShipService>();
 
 builder.Services.AddCors(options =>
 {
