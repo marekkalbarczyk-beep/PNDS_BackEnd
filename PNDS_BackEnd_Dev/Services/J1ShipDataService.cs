@@ -60,14 +60,18 @@ namespace PNDS_BackEnd_Dev.Services
 #if DEBUG
                     _logger.LogInformation("Odczyt danych z OPC: J1ShipDataService");
 #endif
-                    var tmpName = _opcClient.OPC_Read<String>("ns=1;s=t|SERVER2::AS1/ShipData1.ShipName");
-                    var tmpDir = _opcClient.OPC_Read<int>("ns=1;s=t|SERVER2::AS1/ShipData1.HullDirection");
+                    var nameTask = _opcClient.OPC_Read<String>("ns=1;s=t|SERVER2::AS1/ShipData1.ShipName");
+                    var dirTask = _opcClient.OPC_Read<int>("ns=1;s=t|SERVER2::AS1/ShipData1.HullDirection");
+
+                    await Task.WhenAll(nameTask, dirTask);
+                    var nameRes = await nameTask;
+                    var dirRes = await dirTask;
 
                     lock (_lock)
                     {
-                        _currentData.J1ShipName = tmpName.Value ?? String.Empty;
-                        _currentData.J1ShipDirection = tmpDir.Value;
-                        _currentData.J1Status = tmpName.Status & tmpDir.Status;
+                        _currentData.J1ShipName = nameRes.Value ?? String.Empty;
+                        _currentData.J1ShipDirection = dirRes.Value;
+                        _currentData.J1Status = nameRes.Status && dirRes.Status;
                     }
                 }
                 else

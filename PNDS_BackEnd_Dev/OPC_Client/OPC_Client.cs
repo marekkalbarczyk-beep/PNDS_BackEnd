@@ -1,4 +1,6 @@
-﻿using System.Net.Sockets;
+﻿using System.Diagnostics;
+using System.Diagnostics.Metrics;
+using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Routing.Constraints;
@@ -9,6 +11,7 @@ using Opc.Ua.Configuration;
 using PNDS_BackEnd_Dev.Services;
 using Serilog;
 using Serilog.Events;
+using Serilog.Extensions.Logging;
 
 
 namespace PNDS_BackEnd_Dev.OPC_Client
@@ -21,8 +24,43 @@ namespace PNDS_BackEnd_Dev.OPC_Client
     {
         Task Connect();
         bool OPC_Client_Connected();
-        OpcResult<T> OPC_Read<T>(string key);
+        Task<OpcResult<T>> OPC_Read<T>(string key);
         //void OPC_Client_Disconnect();
+    }
+
+    public class SerilogTelemetryContext : ITelemetryContext
+    {
+        // 1. Logowanie (Microsoft.Extensions.Logging)
+        public ILoggerFactory LoggerFactory { get; }
+
+        // 2. Metryki (System.Diagnostics.Metrics)
+        private readonly Meter _meter;
+
+        // 3. Tracing (System.Diagnostics.ActivitySource)
+        public ActivitySource ActivitySource { get; }
+
+        public SerilogTelemetryContext()
+        {
+            // Łączymy fabrykę z Twoim statycznym Serilogiem
+            LoggerFactory = new SerilogLoggerFactory(Log.Logger);
+
+            // Tworzymy źródła dla metryk i śledzenia
+            _meter = new Meter("Opc.Ua.Client");
+            ActivitySource = new ActivitySource("Opc.Ua.Client");
+        }
+
+        // Implementacja metody Trace (wymagana przez interfejs)
+        public void Trace(string message, params object[] args)
+        {
+            // Przekierowanie do Seriloga przez utworzoną fabrykę
+            LoggerFactory.CreateLogger("OpcUa.Sdk").LogDebug(message, args);
+        }
+
+        // Implementacja metody CreateMeter (wymagana przez interfejs)
+        public Meter CreateMeter()
+        {
+            return _meter;
+        }
     }
 
     public class OPCClient : IOPCClient
@@ -41,14 +79,15 @@ namespace PNDS_BackEnd_Dev.OPC_Client
         private static string applicationName = "PNDS_OPC_Client";
         private static string configSectionName = "PNDS.OPC_Client";
 
-        private ITransportWaitingConnection? connection = null;
+        private ITransportWaitingConnection connection = null!;
         private uint SessionLifeTime = 60 * 1000;
         //IUserIdentity UserIdentity = new UserIdentity(username, userpassword ?? string.Empty);
         private CancellationToken ct = default;
 
         // Define the UA Client application
         private static CertificatePasswordProvider PasswordProvider = new CertificatePasswordProvider(password);
-        private ApplicationInstance AppInstance = new ApplicationInstance
+        private static ITelemetryContext telemetry = new SerilogTelemetryContext();
+        private ApplicationInstance AppInstance = new ApplicationInstance(telemetry)
         {
             ApplicationName = applicationName,
             ApplicationType = ApplicationType.Client,
@@ -96,24 +135,24 @@ namespace PNDS_BackEnd_Dev.OPC_Client
                     if (session == null || !session.Connected)
                     {
                         _logger.LogInformation("Trying to establish OPC session");
-                        AppConfiguration = await AppInstance.LoadApplicationConfiguration(silent: false).ConfigureAwait(false);
+                        AppConfiguration = await AppInstance.LoadApplicationConfigurationAsync(silent: false).ConfigureAwait(false);
                         AppConfiguration.SecurityConfiguration.SuppressNonceValidationErrors = true;
 
-                        bool haveAppCertificate = await AppInstance.CheckApplicationInstanceCertificates(silent: false).ConfigureAwait(false);
+                        bool haveAppCertificate = await AppInstance.CheckApplicationInstanceCertificatesAsync(silent: false).ConfigureAwait(false);
 
                         if (!haveAppCertificate)
                         {
                             throw new Exception("Application instance certificate invalid!");
                         }
 
-                        endpointDescription = CoreClientUtils.SelectEndpoint(AppConfiguration, serverUrl.ToString(), useSecurity);
+                        endpointDescription = await CoreClientUtils.SelectEndpointAsync(AppConfiguration, serverUrl.ToString(), useSecurity, telemetry);
 
                         EndpointConfiguration endpointConfiguration = EndpointConfiguration.Create(AppConfiguration);
                        // endpoint = new ConfiguredEndpoint(null, endpointDescription, endpointConfiguration);
                         endpoint.Update(endpointConfiguration);
                         endpoint.Update(endpointDescription);
 
-                        var sessionFactory = TraceableSessionFactory.Instance;
+                        var sessionFactory = new DefaultSessionFactory(telemetry);
                         //Session OPC_session = new Session( , m_configuration, )
                         var _session = await sessionFactory.CreateAsync(
                                 AppInstance.ApplicationConfiguration,
@@ -163,16 +202,16 @@ namespace PNDS_BackEnd_Dev.OPC_Client
 
         }
 
-        public OpcResult<T> OPC_Read<T>(string key)
+        public async Task<OpcResult<T>> OPC_Read<T>(string key)
         {
             try
             {
                 if (session != null && session.Connected)
                 {
-                    var rawValue = session.ReadValue(new NodeId(key)).Value;
+                    DataValue rawValue = await session.ReadValueAsync(new NodeId(key)).ConfigureAwait(false);
                     if (rawValue != null)
                     {
-                        T convertedValue = (T)Convert.ChangeType(rawValue, typeof(T));
+                        T convertedValue = (T)Convert.ChangeType(rawValue.Value, typeof(T));
                         // Używamy zwięzłego konstruktora recordu
                         return new OpcResult<T>(true, convertedValue);
                     }                
