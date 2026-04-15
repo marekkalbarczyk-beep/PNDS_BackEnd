@@ -26,6 +26,7 @@ namespace PNDS_BackEnd_Dev.OPC_Client
         bool OPC_Client_Connected();
         Task<OpcResult<T>> OPC_Read<T>(string key);
         //void OPC_Client_Disconnect();
+        Task<List<OpcResult<object>>> OPC_ReadMultiple(List<string> nodeIds);
     }
 
     public class SerilogTelemetryContext : ITelemetryContext
@@ -256,6 +257,7 @@ namespace PNDS_BackEnd_Dev.OPC_Client
                             catch (Exception ex2)
                             {
                                 _logger.LogError(" Reconnect failed: " + ex2.Message);
+                                session.Dispose();
                             }
                         }
                         else
@@ -276,6 +278,50 @@ namespace PNDS_BackEnd_Dev.OPC_Client
                     return new OpcResult<T>(false, default);
                 }
             }
+        }
+
+        public async Task<List<OpcResult<object>>> OPC_ReadMultiple(List<string> nodeIds)
+        {
+            var results = new List<OpcResult<object>>();
+            try
+            {
+                if (session == null || !session.Connected)
+                    return nodeIds.Select(_ => new OpcResult<object>(false, null)).ToList();
+
+                // 1. Tworzymy listę "życzeń" dla serwera
+                ReadValueIdCollection nodesToRead = new ReadValueIdCollection();
+                foreach (var id in nodeIds)
+                {
+                    nodesToRead.Add(new ReadValueId
+                    {
+                        NodeId = new NodeId(id),
+                        AttributeId = Attributes.Value
+                    });
+                }
+
+                // 2. Jeden zbiorczy odczyt
+                var response = await session.ReadAsync(
+                    null, 0, TimestampsToReturn.Both, nodesToRead, ct).ConfigureAwait(false);
+
+                // 3. Przetworzenie wyników
+                for (int i = 0; i < response.Results.Count; i++)
+                {
+                    var r = response.Results[i];
+                    if (StatusCode.IsGood(r.StatusCode))
+                    {
+                        results.Add(new OpcResult<object>(true, r.Value));
+                    }
+                    else
+                    {
+                        results.Add(new OpcResult<object>(false, null));
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Błąd odczytu grupowego: {Msg}", ex.Message);
+            }
+            return results;
         }
 
         public void OPC_Client_Disconnect()

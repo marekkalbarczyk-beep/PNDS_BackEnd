@@ -65,6 +65,7 @@ builder.Services.AddControllers();
 builder.Services.AddSingleton<IOPCClient, OPCClient>();
 builder.Services.AddSingleton<IJ1ShipService, J1ShipService>();
 builder.Services.AddSingleton<IJ2ShipService, J2ShipService>();
+builder.Services.AddSingleton<IJ1BerthingService, J1BerthingService>();
 
 builder.Services.AddCors(options =>
 {
