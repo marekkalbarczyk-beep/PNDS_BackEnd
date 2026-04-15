@@ -2,41 +2,42 @@
 
 namespace PNDS_BackEnd_Dev.Services
 {
-    public class J2SeaStateData
+    public class J2WeatherData
     {
+
         public bool Status { get; set; } = false;
-        public float J2CurrentSpeed { get; set; } = 0;
-        public float J2CurrentDirection { get; set; } = 0;
-        public float J2MeanWave { get; set; } = 0;
-        public float J2MaxWave { get; set; } = 0;
-        public float J2MeanPeriod { get; set; } = 0;
-        public float J2Tide { get; set; } = 0;
+        public float J2WD { get; set; } = 0; //Wind Direction
+        public float J2WS { get; set; } = 0; //Wind Speed
+        public float J2P { get; set; } = 0; // Preasure
+        public float J2T { get; set; } = 0; //Temperature
+        public float J2H { get; set; } = 0; //Humanidy
+        public float J2R { get; set; } = 0; //Rain
     }
 
-    public interface IJ2SeaStateService
+    public interface IJ2WeatherService
     {
-        J2SeaStateData GetCurrentData();
+        J2WeatherData GetCurrentData();
     }
 
 
 
-    public class J2SeaStateService : IJ2SeaStateService, IDisposable
+    public class J2WeatherService : IJ2WeatherService, IDisposable
     {
         private IOPCClient _opcClient;
-        private ILogger<J2SeaStateService> _logger;
+        private ILogger<J2WeatherService> _logger;
 
-        private J2SeaStateData _currentData = new();
+        private J2WeatherData _currentData = new();
         private readonly object _lock = new(); // Dla bezpieczeństwa wątkowego
         private readonly CancellationTokenSource _cts = new();
         private readonly List<string> _tags = new()
         {
 
-            "ns=1;s=t|SERVER1::Current2/Current.Speed",
-            "ns=1;s=t|SERVER1::Current2/Current.Direction",
-            "ns=1;s=t|SERVER1::WaveTide2/MeanWave.Q_PV",
-            "ns=1;s=t|SERVER1::WaveTide2/MaxWave.Q_PV",
-            "ns=1;s=t|SERVER1::WaveTide2/MeanPeriod.Q_PV",
-            "ns=1;s=t|SERVER1::WaveTide2/Tide.Q_PV"
+            "ns=1;s=t|SERVER1::Wind/WIND_COMPASS.Direction",
+            "ns=1;s=t|SERVER1::Wind/WIND_COMPASS.Speed",
+            "ns=1;s=t|SERVER1::AtmPressure/MEASURE.Q_PV",
+            "ns=1;s=t|SERVER1::AirTemperature/MEASURE.Q_PV",
+            "ns=1;s=t|SERVER1::Humidity/MEASURE.Q_P",
+            "ns=1;s=t|SERVER1::Rain/MEASURE.Q_PV"
         };
 
         // Licznik czasu
@@ -45,7 +46,7 @@ namespace PNDS_BackEnd_Dev.Services
         private bool _sleepMessage = false;
         private readonly TimeSpan _timeout = TimeSpan.FromMinutes(2);
 
-        public J2SeaStateService( IOPCClient oPC, ILogger<J2SeaStateService> logger)
+        public J2WeatherService( IOPCClient oPC, ILogger<J2WeatherService> logger)
         {
 
             _logger = logger;
@@ -55,7 +56,7 @@ namespace PNDS_BackEnd_Dev.Services
           //  _logger.LogInformation("Creating J2 ShipDataReader");
         }
 
-        public J2SeaStateData GetCurrentData()
+        public J2WeatherData GetCurrentData()
             {
             lock (_lock)
             {
@@ -63,14 +64,14 @@ namespace PNDS_BackEnd_Dev.Services
                 _isPollingActive = true;
                 _sleepMessage = false;
                 // Zwracamy kopię, aby nikt "z zewnątrz" nie zmienił danych w serwisie
-                return new J2SeaStateData
+                return new J2WeatherData
                 {
-                    J2CurrentSpeed = _currentData.J2CurrentSpeed,
-                    J2CurrentDirection = _currentData.J2CurrentDirection,
-                    J2MeanWave = _currentData.J2MeanWave,
-                    J2MaxWave = _currentData.J2MaxWave,
-                    J2MeanPeriod = _currentData.J2MeanPeriod,
-                    J2Tide = _currentData.J2Tide,
+                    J2WD = _currentData.J2WD,
+                    J2WS = _currentData.J2WS,
+                    J2P = _currentData.J2P,
+                    J2T = _currentData.J2T,
+                    J2H = _currentData.J2H,
+                    J2R = _currentData.J2R,
                     Status = _currentData.Status
                 };
             }
@@ -78,7 +79,7 @@ namespace PNDS_BackEnd_Dev.Services
 
         private async Task RefreshLoop()
         {
-            var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(2500));
+            var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(5000));
             while (await timer.WaitForNextTickAsync(_cts.Token))
             {
 
@@ -96,7 +97,7 @@ namespace PNDS_BackEnd_Dev.Services
                     {
                         // Odczyt danych z OPC
 #if DEBUG
-                        _logger.LogInformation("Odczyt danych z OPC: J2SeaStateService");
+                        _logger.LogInformation("Odczyt danych z OPC: J2WeatherService");
 #endif
                         var results = await _opcClient.OPC_ReadMultiple(_tags);
 
@@ -104,12 +105,12 @@ namespace PNDS_BackEnd_Dev.Services
                         {
                             if (results.Count == _tags.Count && results.All(r => r.Status))
                             {
-                                _currentData.J2CurrentSpeed = (float)(Math.Ceiling(Convert.ToSingle(results[0].Value) * 10) / 10);
-                                _currentData.J2CurrentDirection = (float)(Math.Ceiling(Convert.ToSingle(results[1].Value) * 10) / 10);
-                                _currentData.J2MeanWave = (float)(Math.Ceiling(Convert.ToSingle(results[2].Value) * 10) / 10);
-                                _currentData.J2MaxWave = (float)(Math.Ceiling(Convert.ToSingle(results[3].Value) * 10) / 10);
-                                _currentData.J2MeanPeriod = (float)(Math.Ceiling(Convert.ToSingle(results[4].Value) * 10) / 10);
-                                _currentData.J2Tide = (float)(Math.Ceiling(Convert.ToSingle(results[5].Value) * 10) / 10);
+                                _currentData.J2WD = (float)(Math.Ceiling(Convert.ToSingle(results[0].Value) * 10) / 10);
+                                _currentData.J2WS = (float)(Math.Ceiling(Convert.ToSingle(results[1].Value) * 10) / 10);
+                                _currentData.J2P = (float)(Math.Ceiling(Convert.ToSingle(results[2].Value) * 10) / 10);
+                                _currentData.J2T = (float)(Math.Ceiling(Convert.ToSingle(results[3].Value) * 10) / 10);
+                                _currentData.J2H = (float)(Math.Ceiling(Convert.ToSingle(results[4].Value) * 10) / 10);
+                                _currentData.J2R = (float)(Math.Ceiling(Convert.ToSingle(results[5].Value) * 10) / 10);
                                 _currentData.Status = true;
                             }
                         }
@@ -124,7 +125,7 @@ namespace PNDS_BackEnd_Dev.Services
                 {
                     if (!_sleepMessage)
                     {
-                        _logger.LogInformation("OPC Polling is sleeping: J2SeaStateService");
+                        _logger.LogInformation("OPC Polling is sleeping: J2WeatherService");
                         _sleepMessage = true;
                     }
                 }

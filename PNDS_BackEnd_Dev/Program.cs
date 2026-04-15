@@ -88,6 +88,8 @@ builder.Services.AddSingleton<IJ1BerthingService, J1BerthingService>();
 builder.Services.AddSingleton<IJ2BerthingService, J2BerthingService>();
 builder.Services.AddSingleton<IJ1SeaStateService, J1SeaStateService>();
 builder.Services.AddSingleton<IJ2SeaStateService, J2SeaStateService>();
+builder.Services.AddSingleton<IJ1WeatherService, J1WeatherService>();
+builder.Services.AddSingleton<IJ2WeatherService, J2WeatherService>();
 
 builder.Services.AddHttpClient<RecaptchaService>();
 builder.Services.AddScoped<ShipService>();
