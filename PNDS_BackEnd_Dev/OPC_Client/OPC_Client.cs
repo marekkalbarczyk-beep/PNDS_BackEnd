@@ -175,6 +175,20 @@ namespace PNDS_BackEnd_Dev.OPC_Client
                         _logger.LogInformation(session.Endpoint.EndpointUrl);
                         _logger.LogInformation(session.Endpoint.SecurityPolicyUri);
 
+                        session.KeepAlive += (sender, e) =>
+                        {
+                            if (ServiceResult.IsBad(e.Status))
+                            {
+                                _logger.LogWarning("Problem z połączeniem: {0}. Próba odnowienia...", e.Status);
+                                // Tutaj możesz ustawić flagę błędu dla Twoich serwisów
+                            }
+                            else
+                            {
+                                // To zdarzenie wyzwala się m.in. przy odświeżaniu tokenów
+                                _logger.LogInformation("Sesja żyje. Stan: {0}", e.CurrentState);
+                            }
+                        };
+
 
                     }
                 }

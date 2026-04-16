@@ -7,7 +7,7 @@ namespace PNDS_BackEnd_Dev.Controllers
     [ApiController]
 //    [Authorize]
     [Produces("application/json")]
-    [Route("/data/J1SeaState")]
+    [Route("/data/J1SeaStateData")]
 
     public class J1SeaStateController : ControllerBase
     {

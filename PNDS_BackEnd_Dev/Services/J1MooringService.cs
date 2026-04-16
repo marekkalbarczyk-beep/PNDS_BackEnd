@@ -72,6 +72,8 @@ namespace PNDS_BackEnd_Dev.Services
         private bool _isPollingActive = false;
         private bool _sleepMessage = false;
 
+        private Random rnd = new();
+
         private readonly Dictionary<int, string> _dalbTagsbMap = new()
             {
                 { 1 , "ns=1;s=t|SERVER2::M01S11/T." },
@@ -142,7 +144,7 @@ namespace PNDS_BackEnd_Dev.Services
 
         private async Task RefreshLoop()
         {
-            var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(1000));
+            var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(rnd.Next(800, 1300)));
             while (await timer.WaitForNextTickAsync(_cts.Token))
             {
 
@@ -172,7 +174,7 @@ namespace PNDS_BackEnd_Dev.Services
                                 {
                                     _currentData.j1Values[i] = (float)(Math.Ceiling(Convert.ToSingle(results[i].Value) * 10) / 10);
                                 }
-                                _currentData.j1UnitLoad = (float)(Math.Ceiling(Convert.ToSingle(results[_currentData.j1NoOfHooks].Value) * 10) / 10);
+                                _currentData.j1UnitLoad = (float)(Math.Ceiling(Convert.ToSingle(results[_currentData.j1NoOfHooks].Value) * 100) / 100);
 
                                 _currentData.status = true;
                             }
