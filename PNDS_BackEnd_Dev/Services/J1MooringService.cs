@@ -50,7 +50,7 @@ namespace PNDS_BackEnd_Dev.Services
             => _mooringServices.Select(s => s.GetData());
 
         public J1MooringData? GetCurrentData(int id)
-            => _mooringServices.FirstOrDefault(s => s.GetData().id == id)?.GetData();
+            => _mooringServices.FirstOrDefault(s => s.GetId() == id)?.GetData();
 
         public void Dispose()
         {
@@ -118,6 +118,10 @@ namespace PNDS_BackEnd_Dev.Services
           //  _logger.LogInformation("Creating J1 ShipDataReader");
         }
 
+        public int GetId()
+        {
+            return _currentData.id;
+        }
 
         public J1MooringData GetData()
         {

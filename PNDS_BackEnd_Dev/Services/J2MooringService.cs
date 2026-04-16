@@ -54,7 +54,7 @@ namespace PNDS_BackEnd_Dev.Services
             => _mooringServices.Select(s => s.GetData());
 
         public J2MooringData? GetCurrentData(int id)
-            => _mooringServices.FirstOrDefault(s => s.GetData().id == id)?.GetData();
+            => _mooringServices.FirstOrDefault(s => s.GetId() == id)?.GetData();
 
         public void Dispose()
         {
@@ -124,6 +124,11 @@ namespace PNDS_BackEnd_Dev.Services
             _ = RefreshLoop();
 
           //  _logger.LogInformation("Creating J2 ShipDataReader");
+        }
+
+        public int GetId()
+        {
+            return _currentData.id;
         }
 
 
