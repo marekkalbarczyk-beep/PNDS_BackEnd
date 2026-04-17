@@ -74,7 +74,7 @@ namespace PNDS_BackEnd_Dev.Services
 
         private Random rnd = new();
 
-        private readonly Dictionary<int, string> _dalbTagsbMap = new()
+        private static readonly Dictionary<int, string> _dalbTagsbMap = new()
             {
                 { 1 , "ns=1;s=t|SERVER2::M01S11/T." },
                 { 2 , "ns=1;s=t|SERVER2::M01S12/D." },

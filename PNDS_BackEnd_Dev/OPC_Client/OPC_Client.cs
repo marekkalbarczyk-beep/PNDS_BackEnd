@@ -265,8 +265,7 @@ namespace PNDS_BackEnd_Dev.OPC_Client
                             try
                             {
                                 _logger.LogInformation("OPCClient trying to reconnect");
-                                Task t = Task.Run(() => session.ReconnectAsync());
-                                t.Wait();
+                                await session.ReconnectAsync();
                             }
                             catch (Exception ex2)
                             {
@@ -279,8 +278,7 @@ namespace PNDS_BackEnd_Dev.OPC_Client
                             try
                             {
                                 _logger.LogInformation("OPCClient trying to create new session");
-                                Task t = Task.Run(() => this.Connect());
-                                t.Wait();
+                                await this.Connect();
                             }
                             catch (Exception ex3)
                             {
