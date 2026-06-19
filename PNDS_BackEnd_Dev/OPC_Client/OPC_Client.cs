@@ -237,6 +237,16 @@ namespace PNDS_BackEnd_Dev.OPC_Client
                     return new OpcResult<T>(false, default);
                 }
             }
+            catch (ServiceResultException srex)
+            {
+                _logger.LogWarning("OPC Service Error: {Code}", srex.StatusCode);
+                if (srex.StatusCode == Opc.Ua.StatusCodes.BadSessionIdInvalid || srex.StatusCode == Opc.Ua.StatusCodes.BadSessionClosed)
+                {
+                    session?.Dispose();
+                    session = null;
+                }
+                return new OpcResult<T>(false, default);
+            }
             catch (Exception ex)
             {
                  _logger.LogWarning(" OPC Read failed with key " + nodeId);
@@ -271,6 +281,7 @@ namespace PNDS_BackEnd_Dev.OPC_Client
                             {
                                 _logger.LogError(" Reconnect failed: " + ex2.Message);
                                 session.Dispose();
+                                session = null;
                             }
                         }
                         else
@@ -328,6 +339,16 @@ namespace PNDS_BackEnd_Dev.OPC_Client
                         results.Add(new OpcResult<object>(false, null));
                     }
                 }
+            }
+            catch (ServiceResultException srex)
+            {
+                _logger.LogWarning("OPC Service Error: {Code}", srex.StatusCode);
+                if (srex.StatusCode == Opc.Ua.StatusCodes.BadSessionIdInvalid || srex.StatusCode == Opc.Ua.StatusCodes.BadSessionClosed)
+                {
+                    session?.Dispose();
+                    session = null;
+                }
+                results.Add(new OpcResult<object>(false, null));
             }
             catch (Exception ex)
             {
