@@ -19,30 +19,30 @@ Log.Logger = new LoggerConfiguration()
                     retainedFileCountLimit: 7,             // Przechowuj tylko 7 ostatnich plików (tydzień)
                     fileSizeLimitBytes: 10 * 1024 * 1024, // Opcjonalnie: limit 10MB na plik
                     rollOnFileSizeLimit: true)
-    //.WriteTo.Logger(lc => lc
-    //    .Filter.ByIncludingOnly(Matching.FromSource<PNDS_BackEnd_Prod.Controllers.authController>())
-    //    .WriteTo.File("c:/PNDS/logs/auth-.log",
-    //                rollingInterval: RollingInterval.Day,
-    //                restrictedToMinimumLevel: LogEventLevel.Information,
-    //                retainedFileCountLimit: 7,             // Przechowuj tylko 7 ostatnich plików (tydzień)
-    //                fileSizeLimitBytes: 10 * 1024 * 1024, // Opcjonalnie: limit 10MB na plik
-    //                rollOnFileSizeLimit: true))
-    //.WriteTo.Logger(lc => lc
-    //    .Filter.ByIncludingOnly(Matching.FromSource<PNDS_BackEnd_Prod.Services.RecaptchaService>())
-    //    .WriteTo.File("c:/PNDS/logs/reCap-.log",
-    //                rollingInterval: RollingInterval.Day,
-    //                restrictedToMinimumLevel: LogEventLevel.Information,
-    //                retainedFileCountLimit: 7,             // Przechowuj tylko 7 ostatnich plików (tydzień)
-    //                fileSizeLimitBytes: 10 * 1024 * 1024, // Opcjonalnie: limit 10MB na plik
-    //                rollOnFileSizeLimit: true))
-    //.WriteTo.Logger(lc => lc
-    //    .Filter.ByIncludingOnly(Matching.FromSource<PNDS_BackEnd_Prod.OPC_Client.OPCClient>())
-    //    .WriteTo.File("c:/PNDS/logs/OPC_Client-.log",
-    //                rollingInterval: RollingInterval.Day,
-    //                restrictedToMinimumLevel: LogEventLevel.Information,
-    //                retainedFileCountLimit: 7,             // Przechowuj tylko 7 ostatnich plików (tydzień)
-    //                fileSizeLimitBytes: 10 * 1024 * 1024, // Opcjonalnie: limit 10MB na plik
-    //                rollOnFileSizeLimit: true))
+    .WriteTo.Logger(lc => lc
+        .Filter.ByIncludingOnly(Matching.FromSource<PNDS_BackEnd_Dev.Controllers.authController>())
+        .WriteTo.File("c:/PNDS/DevLogs/auth-.log",
+                    rollingInterval: RollingInterval.Day,
+                    restrictedToMinimumLevel: LogEventLevel.Information,
+                    retainedFileCountLimit: 7,             // Przechowuj tylko 7 ostatnich plików (tydzień)
+                    fileSizeLimitBytes: 10 * 1024 * 1024, // Opcjonalnie: limit 10MB na plik
+                    rollOnFileSizeLimit: true))
+    .WriteTo.Logger(lc => lc
+        .Filter.ByIncludingOnly(Matching.FromSource<PNDS_BackEnd_Dev.Services.RecaptchaService>())
+        .WriteTo.File("c:/PNDS/DevLogs/reCap-.log",
+                    rollingInterval: RollingInterval.Day,
+                    restrictedToMinimumLevel: LogEventLevel.Information,
+                    retainedFileCountLimit: 7,             // Przechowuj tylko 7 ostatnich plików (tydzień)
+                    fileSizeLimitBytes: 10 * 1024 * 1024, // Opcjonalnie: limit 10MB na plik
+                    rollOnFileSizeLimit: true))
+    .WriteTo.Logger(lc => lc
+        .Filter.ByIncludingOnly(Matching.FromSource<PNDS_BackEnd_Dev.OPC_Client.OPCClient>())
+        .WriteTo.File("c:/PNDS/DevLogs/OPC_Client-.log",
+                    rollingInterval: RollingInterval.Day,
+                    restrictedToMinimumLevel: LogEventLevel.Information,
+                    retainedFileCountLimit: 7,             // Przechowuj tylko 7 ostatnich plików (tydzień)
+                    fileSizeLimitBytes: 10 * 1024 * 1024, // Opcjonalnie: limit 10MB na plik
+                    rollOnFileSizeLimit: true))
     .CreateLogger();
 
 

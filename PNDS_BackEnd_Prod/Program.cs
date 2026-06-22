@@ -73,12 +73,6 @@ builder.Services.AddAuthentication(options => {
 // Add services to the container.
 
 builder.Services.AddControllers();
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-#if DEBUG
-    builder.Services.AddOpenApi();
-    builder.Services.AddEndpointsApiExplorer();
-    builder.Services.AddSwaggerGen();
-#endif
 
 
 builder.Services.AddSingleton<IOPCClient, OPCClient>();
