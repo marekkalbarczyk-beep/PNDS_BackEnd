@@ -1,30 +1,32 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using PNDS_BackEnd_Prod.OPC_Interface;
-using PNDS_BackEnd_Prod.OPC_Repos;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using PNDS_BackEnd_Prod.Services;
 
 namespace PNDS_BackEnd_Prod.Controllers
 {
     [ApiController]
+    [Authorize]
     [Produces("application/json")]
     [Route("/data/J2Berthing")]
 
     public class J2BerthingController : ControllerBase
     {
-        J2BerthingInterface J2BerthingInterfaceLocal;
-        public J2BerthingController(J2BerthingInterface sdi) 
+        private readonly IJ2BerthingService _service;
+        public J2BerthingController(IJ2BerthingService service)
         {
-            this.J2BerthingInterfaceLocal = sdi;
+            _service = service;
         }
 
         [HttpGet]
-        public ActionResult<J2Berthing> J2GetBerthing()
+        public ActionResult<J2BerthingData> GetCurrentData()
         {
-            var J2Berthing = J2BerthingInterfaceLocal.J2GetBerthing();
-            if (J2Berthing == null)
+            var data = _service.GetCurrentData();
+            if (data == null)
             {
                 return NotFound();
             }
-            return J2Berthing;
+            return Ok(data);
         }
     }
+
 }

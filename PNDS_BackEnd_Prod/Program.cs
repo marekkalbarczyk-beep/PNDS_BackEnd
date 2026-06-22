@@ -1,18 +1,19 @@
 using System.Text;
 using Microsoft.AspNetCore.Mvc.NewtonsoftJson;
 using Microsoft.IdentityModel.Tokens;
+using PNDS_BackEnd_Prod.Models;
 using PNDS_BackEnd_Prod.OPC_Client;
-using PNDS_BackEnd_Prod.OPC_Repos;
 using PNDS_BackEnd_Prod.Services;
 using Serilog;
 using Serilog.Events;
 using Serilog.Filters;
+
 // Konfiguracja Seriloga
 Log.Logger = new LoggerConfiguration()
 #if DEBUG
     .WriteTo.Console()
 #endif
-    .WriteTo.File("c:/PNDS/Logs/log-.log", 
+    .WriteTo.File("c:/PNDS/Logs/log-.log",
                     rollingInterval: RollingInterval.Hour,
                     restrictedToMinimumLevel: LogEventLevel.Information,
                     retainedFileCountLimit: 7,             // Przechowuj tylko 7 ostatnich plików (tydzień)
@@ -20,7 +21,7 @@ Log.Logger = new LoggerConfiguration()
                     rollOnFileSizeLimit: true)
     .WriteTo.Logger(lc => lc
         .Filter.ByIncludingOnly(Matching.FromSource<PNDS_BackEnd_Prod.Controllers.authController>())
-        .WriteTo.File("c:/PNDS/logs/auth-.log", 
+        .WriteTo.File("c:/PNDS/logs/auth-.log",
                     rollingInterval: RollingInterval.Day,
                     restrictedToMinimumLevel: LogEventLevel.Information,
                     retainedFileCountLimit: 7,             // Przechowuj tylko 7 ostatnich plików (tydzień)
@@ -44,11 +45,12 @@ Log.Logger = new LoggerConfiguration()
                     rollOnFileSizeLimit: true))
     .CreateLogger();
 
+
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Host.UseSerilog();
 
-// Add services to the container.
 
 var jwtKey = builder.Configuration["BearerJWT:Key"] ??= "Default_T43_M0st_Complicated_Protected_K3Y_1n_Th3_Univers3";
 
@@ -68,23 +70,28 @@ builder.Services.AddAuthentication(options => {
     };
 });
 
-builder.Services.AddSingleton<J1DalbaListInterface, J1DalbaList>();
-builder.Services.AddSingleton<J2DalbaListInterface, J2DalbaList>();
-builder.Services.AddSingleton<J1ShipDataInterface, J1ShipDataRepo>();
-builder.Services.AddSingleton<J2ShipDataInterface, J2ShipDataRepo>();
-builder.Services.AddSingleton<J1WeatherDataInterface, J1WeatherDataRepo>();
-builder.Services.AddSingleton<J2WeatherDataInterface, J2WeatherDataRepo>();
-builder.Services.AddSingleton<J1SeaStateDataInterface, J1SeaStateDataRepo>();
-builder.Services.AddSingleton<J2SeaStateDataInterface, J2SeaStateDataRepo>();
-builder.Services.AddSingleton<J1BerthingInterface, J1BerthingRepo>();
-builder.Services.AddSingleton<J2BerthingInterface, J2BerthingRepo>();
-//builder.Services.AddSingleton<ShipDataInterface, ShipDataRepo>();
-builder.Services.AddControllers().AddNewtonsoftJson();
-
-//builder.Services.AddSingleton<IOPCClient,OPCClient>();
-
+// Add services to the container.
 
 builder.Services.AddControllers();
+// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+#if DEBUG
+    builder.Services.AddOpenApi();
+    builder.Services.AddEndpointsApiExplorer();
+    builder.Services.AddSwaggerGen();
+#endif
+
+
+builder.Services.AddSingleton<IOPCClient, OPCClient>();
+builder.Services.AddSingleton<IJ1ShipService, J1ShipService>();
+builder.Services.AddSingleton<IJ2ShipService, J2ShipService>();
+builder.Services.AddSingleton<IJ1BerthingService, J1BerthingService>();
+builder.Services.AddSingleton<IJ2BerthingService, J2BerthingService>();
+builder.Services.AddSingleton<IJ1SeaStateService, J1SeaStateService>();
+builder.Services.AddSingleton<IJ2SeaStateService, J2SeaStateService>();
+builder.Services.AddSingleton<IJ1WeatherService, J1WeatherService>();
+builder.Services.AddSingleton<IJ2WeatherService, J2WeatherService>();
+builder.Services.AddSingleton<IJ1MooringListService, J1MooringListService>();
+builder.Services.AddSingleton<IJ2MooringListService, J2MooringListService>();
 
 builder.Services.AddHttpClient<RecaptchaService>();
 builder.Services.AddScoped<ShipService>();
@@ -97,18 +104,28 @@ builder.Services.AddCors(options =>
         .AllowAnyOrigin());
 });
 
-
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 app.UseCors("react");
-//app.UseCors("AllowAll");
-//app.UseCors(cors => cors.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
+
 // Configure the HTTP request pipeline.
+//if (app.Environment.IsDevelopment())
+//{
+//    app.MapOpenApi();
+//    app.UseSwagger();
+//    app.UseSwaggerUI();
+//    app.UseSwaggerUI(options => // UseSwaggerUI is called only in Development.
+//    {
+//        options.SwaggerEndpoint("/swagger/v1/swagger.json", "v1");
+//        options.RoutePrefix = string.Empty;
+//    });
+//}
+
 
 
 app.UseHttpsRedirection();
-//app.UseAuthorization();
+
+app.UseAuthorization();
 
 app.MapControllers();
 

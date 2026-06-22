@@ -7,20 +7,20 @@ namespace PNDS_BackEnd_Prod.Controllers
     [ApiController]
     [Authorize]
     [Produces("application/json")]
-    [Route("/data/J2ShipData")]
+    [Route("/data/J1SeaStateData")]
 
-    public class J2ShipDataController : ControllerBase
+    public class J1SeaStateController : ControllerBase
     {
-        private readonly IJ2ShipService _shipService;
-        public J2ShipDataController(IJ2ShipService shipService)
+        private readonly IJ1SeaStateService _service;
+        public J1SeaStateController(IJ1SeaStateService service)
         {
-            _shipService = shipService;
+            _service = service;
         }
 
         [HttpGet]
-        public ActionResult<J2ShipData> GetShipData()
+        public ActionResult<J1SeaStateData> GetCurrentData()
         {
-            var data = _shipService.GetCurrentData();
+            var data = _service.GetCurrentData();
             if (data == null)
             {
                 return NotFound();

@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using PNDS_BackEnd_Prod.OPC_Interface;
-using PNDS_BackEnd_Prod.OPC_Repos;
+using PNDS_BackEnd_Prod.Services;
 
 namespace PNDS_BackEnd_Prod.Controllers
 {
@@ -12,21 +11,22 @@ namespace PNDS_BackEnd_Prod.Controllers
 
     public class J1ShipDataController : ControllerBase
     {
-        J1ShipDataInterface J1ShipDataInterfaceLocal;
-        public J1ShipDataController(J1ShipDataInterface sdi) 
+        private readonly IJ1ShipService _shipService;
+        public J1ShipDataController(IJ1ShipService shipService)
         {
-            this.J1ShipDataInterfaceLocal = sdi;
+            _shipService = shipService;
         }
 
         [HttpGet]
         public ActionResult<J1ShipData> GetShipData()
         {
-            var J1shipData = J1ShipDataInterfaceLocal.J1GetShipData();
-            if (J1shipData == null)
+            var data = _shipService.GetCurrentData();
+            if (data == null)
             {
                 return NotFound();
             }
-            return J1shipData;
+            return Ok(data);
         }
     }
+
 }

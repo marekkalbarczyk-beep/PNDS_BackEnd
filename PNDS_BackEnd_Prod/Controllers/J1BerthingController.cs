@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using PNDS_BackEnd_Prod.OPC_Interface;
-using PNDS_BackEnd_Prod.OPC_Repos;
+using PNDS_BackEnd_Prod.Services;
 
 namespace PNDS_BackEnd_Prod.Controllers
 {
@@ -12,21 +11,22 @@ namespace PNDS_BackEnd_Prod.Controllers
 
     public class J1BerthingController : ControllerBase
     {
-        J1BerthingInterface J1BerthingInterfaceLocal;
-        public J1BerthingController(J1BerthingInterface sdi) 
+        private readonly IJ1BerthingService _service;
+        public J1BerthingController(IJ1BerthingService service)
         {
-            this.J1BerthingInterfaceLocal = sdi;
+            _service = service;
         }
 
         [HttpGet]
-        public ActionResult<J1Berthing> J1GetBerthing()
+        public ActionResult<J1BerthingData> GetCurrentData()
         {
-            var J1Berthing = J1BerthingInterfaceLocal.J1GetBerthing();
-            if (J1Berthing == null)
+            var data = _service.GetCurrentData();
+            if (data == null)
             {
                 return NotFound();
             }
-            return J1Berthing;
+            return Ok(data);
         }
     }
+
 }
