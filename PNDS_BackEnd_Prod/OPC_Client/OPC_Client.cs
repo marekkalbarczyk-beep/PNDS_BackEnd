@@ -185,7 +185,7 @@ namespace PNDS_BackEnd_Prod.OPC_Client
                             else
                             {
                                 // To zdarzenie wyzwala się m.in. przy odświeżaniu tokenów
-                                _logger.LogInformation("Sesja żyje. Stan: {0}", e.CurrentState);
+                                //_logger.LogInformation("Sesja żyje. Stan: {0}", e.CurrentState);
                             }
                         };
 
