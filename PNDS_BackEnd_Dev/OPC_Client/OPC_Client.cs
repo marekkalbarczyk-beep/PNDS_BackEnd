@@ -181,6 +181,8 @@ namespace PNDS_BackEnd_Dev.OPC_Client
                             {
                                 _logger.LogWarning("Problem z połączeniem: {0}. Próba odnowienia...", e.Status);
                                 // Tutaj możesz ustawić flagę błędu dla Twoich serwisów
+                                session.Dispose();
+                                session = null;
                             }
                             else
                             {
@@ -275,13 +277,13 @@ namespace PNDS_BackEnd_Dev.OPC_Client
                             try
                             {
                                 _logger.LogInformation("OPCClient trying to reconnect");
-                                await session.ReconnectAsync();
+                                Task t = Task.Run(() => session.ReconnectAsync());
+                                t.Wait();
                             }
                             catch (Exception ex2)
                             {
                                 _logger.LogError(" Reconnect failed: " + ex2.Message);
                                 session.Dispose();
-                                session = null;
                             }
                         }
                         else
@@ -343,7 +345,7 @@ namespace PNDS_BackEnd_Dev.OPC_Client
             catch (ServiceResultException srex)
             {
                 _logger.LogWarning("OPC Service Error: {Code}", srex.StatusCode);
-                if (srex.StatusCode == Opc.Ua.StatusCodes.BadSessionIdInvalid || srex.StatusCode == Opc.Ua.StatusCodes.BadSessionClosed)
+                if (srex.StatusCode == Opc.Ua.StatusCodes.BadSessionIdInvalid || srex.StatusCode == Opc.Ua.StatusCodes.BadSessionClosed || srex.StatusCode == Opc.Ua.StatusCodes.BadConnectionClosed)
                 {
                     session?.Dispose();
                     session = null;

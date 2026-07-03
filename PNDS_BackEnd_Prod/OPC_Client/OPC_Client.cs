@@ -180,6 +180,9 @@ namespace PNDS_BackEnd_Prod.OPC_Client
                             if (ServiceResult.IsBad(e.Status))
                             {
                                 _logger.LogWarning("Problem z połączeniem: {0}. Próba odnowienia...", e.Status);
+
+                                session.Dispose();
+                                session = null;
                                 // Tutaj możesz ustawić flagę błędu dla Twoich serwisów
                             }
                             else
@@ -240,7 +243,7 @@ namespace PNDS_BackEnd_Prod.OPC_Client
             catch (ServiceResultException srex)
             {
                 _logger.LogWarning("OPC Service Error: {Code}", srex.StatusCode);
-                if (srex.StatusCode == Opc.Ua.StatusCodes.BadSessionIdInvalid || srex.StatusCode == Opc.Ua.StatusCodes.BadSessionClosed)
+                if (srex.StatusCode == Opc.Ua.StatusCodes.BadSessionIdInvalid || srex.StatusCode == Opc.Ua.StatusCodes.BadSessionClosed || srex.StatusCode == Opc.Ua.StatusCodes.BadConnectionClosed)
                 {
                     session?.Dispose();
                     session = null;
@@ -343,7 +346,7 @@ namespace PNDS_BackEnd_Prod.OPC_Client
             catch (ServiceResultException srex)
             {
                 _logger.LogWarning("OPC Service Error: {Code}", srex.StatusCode);
-                if (srex.StatusCode == Opc.Ua.StatusCodes.BadSessionIdInvalid || srex.StatusCode == Opc.Ua.StatusCodes.BadSessionClosed)
+                if (srex.StatusCode == Opc.Ua.StatusCodes.BadSessionIdInvalid || srex.StatusCode == Opc.Ua.StatusCodes.BadSessionClosed || srex.StatusCode == Opc.Ua.StatusCodes.BadConnectionClosed)
                 {
                     session?.Dispose();
                     session = null;
