@@ -90,7 +90,7 @@ namespace PNDS_BackEnd_Prod.Services
                         {
                             _currentData.J2ShipName = nameRes.Value ?? String.Empty;
                             _currentData.J2ShipDirection = dirRes.Value;
-                            _currentData.J2Status = nameRes.Status & dirRes.Status;
+                            _currentData.J2Status = nameRes.Status && dirRes.Status;
                         }
                     }
                     else

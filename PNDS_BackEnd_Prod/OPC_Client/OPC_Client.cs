@@ -25,7 +25,6 @@ namespace PNDS_BackEnd_Prod.OPC_Client
         Task Connect();
         bool OPC_Client_Connected();
         Task<OpcResult<T>> OPC_Read<T>(string key);
-        //void OPC_Client_Disconnect();
         Task<List<OpcResult<object>>> OPC_ReadMultiple(List<string> nodeIds);
     }
 
@@ -70,7 +69,7 @@ namespace PNDS_BackEnd_Prod.OPC_Client
         private readonly ILogger<OPCClient> _logger;
        // private readonly IConfiguration _config;
 
-        private string OPC_Uri = String.Empty;
+       // private string OPC_Uri = String.Empty;
 
 
         private static string? password = null;
@@ -97,8 +96,7 @@ namespace PNDS_BackEnd_Prod.OPC_Client
         };
         private ApplicationConfiguration AppConfiguration = new();
         private ConfiguredEndpoint endpoint = new();
-        //private Uri serverUrl= new Uri("opc.tcp://10.102.254.102:4863/");
-        private Uri serverUrl = new Uri("opc.tcp://10.102.36.100:48010/");
+        private readonly Uri serverUrl = new Uri("opc.tcp://10.102.36.100:48010/");
 
         private static Opc.Ua.Client.ISession? session;
         private static bool ConnectionInProgress = false;

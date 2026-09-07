@@ -59,7 +59,7 @@ namespace PNDS_BackEnd_Prod.Controllers
             if (isValidUser == 1)
             {
                 var tokenHandler = new JwtSecurityTokenHandler();
-                //var key = Encoding.ASCII.GetBytes("Twoj_Bardzo_Dlugi_I_Tajny_Klucz_Min_32_Znaki");
+               
                 var keyRead = _config["BearerJWT:Key"];
                 if (keyRead == null)
                 {
@@ -75,7 +75,7 @@ namespace PNDS_BackEnd_Prod.Controllers
                 {
                     Subject = new ClaimsIdentity(new[] { new Claim(ClaimTypes.Name, request.Login) }),
                     Expires = DateTime.UtcNow.AddHours(72),
-                    SigningCredentials = credentials//new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+                    SigningCredentials = credentials
                 };
 
                 var token = tokenHandler.CreateToken(tokenDescriptor);
@@ -83,7 +83,7 @@ namespace PNDS_BackEnd_Prod.Controllers
 
                 _logger.LogInformation("Login successfull for vessel: {Username}", request.Login);
                 return Ok(new { clientToken = tokenString });
-               // return Ok(new { message = "Login success" });
+               
             }
             switch (isValidUser)
             {
