@@ -12,15 +12,15 @@ namespace PNDS_BackEnd_Prod.Controllers
 
     [ApiController]
     [Route("/auth")]
-    public class authController : ControllerBase
+    public class AuthController : ControllerBase
     {
 
         private readonly RecaptchaService _captcha;
         private readonly ShipService _user;
         private readonly IConfiguration _config;
-        private readonly ILogger<authController> _logger;
+        private readonly ILogger<AuthController> _logger;
 
-        public authController(RecaptchaService captcha, ShipService user , IConfiguration config, ILogger<authController> logger)
+        public AuthController(RecaptchaService captcha, ShipService user , IConfiguration config, ILogger<AuthController> logger)
         {
             _captcha = captcha;
             _user = user;
@@ -68,12 +68,14 @@ namespace PNDS_BackEnd_Prod.Controllers
                 }
 
                 var key = Encoding.ASCII.GetBytes(keyRead);
+                var securityKey = new SymmetricSecurityKey(key);
+                var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
 
                 var tokenDescriptor = new SecurityTokenDescriptor
                 {
                     Subject = new ClaimsIdentity(new[] { new Claim(ClaimTypes.Name, request.Login) }),
                     Expires = DateTime.UtcNow.AddHours(72),
-                    SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+                    SigningCredentials = credentials//new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
                 };
 
                 var token = tokenHandler.CreateToken(tokenDescriptor);

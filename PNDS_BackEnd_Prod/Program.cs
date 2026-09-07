@@ -20,7 +20,7 @@ Log.Logger = new LoggerConfiguration()
                     fileSizeLimitBytes: 10 * 1024 * 1024, // Opcjonalnie: limit 10MB na plik
                     rollOnFileSizeLimit: true)
     .WriteTo.Logger(lc => lc
-        .Filter.ByIncludingOnly(Matching.FromSource<PNDS_BackEnd_Prod.Controllers.authController>())
+        .Filter.ByIncludingOnly(Matching.FromSource<PNDS_BackEnd_Prod.Controllers.AuthController>())
         .WriteTo.File("c:/PNDS/logs/auth-.log",
                     rollingInterval: RollingInterval.Day,
                     restrictedToMinimumLevel: LogEventLevel.Information,

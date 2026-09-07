@@ -128,6 +128,8 @@ namespace PNDS_BackEnd_Prod.Services
             }//while
         }
 
+        public void Cancel() => _cts.Cancel();
+
         public void Dispose() => _cts.Cancel();
 
     }
