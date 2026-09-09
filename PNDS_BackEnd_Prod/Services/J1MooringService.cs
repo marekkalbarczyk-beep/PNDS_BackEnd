@@ -64,12 +64,12 @@ namespace PNDS_BackEnd_Prod.Services
         private readonly IOPCClient _opcClient;
         private readonly ILogger<J1MooringService> _logger;
         private readonly J1MooringData _currentData;
+        private bool _disposed = false;
         private readonly object _lock = new();
         private readonly CancellationTokenSource _cts = new();
 
         private DateTime _lastRequestTime = DateTime.MinValue;
         private readonly TimeSpan _timeout = TimeSpan.FromMinutes(3);
-        private bool _isPollingActive = false;
         private bool _sleepMessage = false;
 
         private Random rnd = new();
@@ -128,7 +128,6 @@ namespace PNDS_BackEnd_Prod.Services
             lock (_lock)
             {
                 _lastRequestTime = DateTime.Now;
-                _isPollingActive = true;
                 _sleepMessage = false;
 
                 // Zwracamy kopię obiektu
@@ -156,7 +155,6 @@ namespace PNDS_BackEnd_Prod.Services
                 lock (_lock)
                 {
                     shouldPoll = (DateTime.Now - _lastRequestTime) < _timeout;
-                    _isPollingActive = shouldPoll;
                 }
 
                 if (shouldPoll)
@@ -194,7 +192,7 @@ namespace PNDS_BackEnd_Prod.Services
                 {
                     if (!_sleepMessage)
                     {
-                        _logger.LogInformation("OPC Polling is sleeping: J1MooringData " + _currentData.id.ToString());
+                        _logger.LogInformation("OPC Polling is sleeping: J1MooringData {DataId}", _currentData.id.ToString());
                         _sleepMessage = true;
                     }
                 }

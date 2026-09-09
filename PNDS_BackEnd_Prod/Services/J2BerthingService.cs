@@ -25,13 +25,14 @@ namespace PNDS_BackEnd_Prod.Services
         private IOPCClient _opcClient;
         private ILogger<J2BerthingService> _logger;
 
+        private bool _disposed = false;
+
         private J2BerthingData _currentData = new();
         private readonly object _lock = new(); // Dla bezpieczeństwa wątkowego
         private readonly CancellationTokenSource _cts = new();
 
         // Licznik czasu
         private DateTime _lastRequestTime = DateTime.MinValue;
-        private bool _isPollingActive = false;
         private bool _sleepMessage = false;
         private readonly TimeSpan _timeout = TimeSpan.FromMinutes(2);
 
@@ -59,7 +60,6 @@ namespace PNDS_BackEnd_Prod.Services
             lock (_lock)
             {
                 _lastRequestTime = DateTime.Now;
-                _isPollingActive = true;
                 _sleepMessage = false;
                 // Zwracamy kopię, aby nikt "z zewnątrz" nie zmienił danych w serwisie
                 return new J2BerthingData
@@ -83,7 +83,6 @@ namespace PNDS_BackEnd_Prod.Services
                 lock (_lock)
                 {
                     shouldPoll = (DateTime.Now - _lastRequestTime) < _timeout;
-                    _isPollingActive = shouldPoll;
                 }
 
                 if (shouldPoll)
@@ -104,8 +103,8 @@ namespace PNDS_BackEnd_Prod.Services
                                 _currentData.J2Angle = Convert.ToInt32(results[0].Value);
                                 _currentData.J2Laser_R_Distance = Convert.ToSingle(results[1].Value);
                                 _currentData.J2Laser_L_Distance = Convert.ToSingle(results[2].Value);
-                                _currentData.J2Laser_R_Speed = Convert.ToSingle(results[3].Value); ;
-                                _currentData.J2Laser_L_Speed = Convert.ToSingle(results[4].Value); ;
+                                _currentData.J2Laser_R_Speed = Convert.ToSingle(results[3].Value);
+                                _currentData.J2Laser_L_Speed = Convert.ToSingle(results[4].Value);
                                 _currentData.J2Status = true;
                             }
                         }

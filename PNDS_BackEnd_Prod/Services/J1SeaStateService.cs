@@ -24,6 +24,7 @@ namespace PNDS_BackEnd_Prod.Services
     {
         private IOPCClient _opcClient;
         private ILogger<J1SeaStateService> _logger;
+        private bool _disposed = false;
 
         private J1SeaStateData _currentData = new();
         private readonly object _lock = new(); // Dla bezpieczeństwa wątkowego
@@ -41,7 +42,6 @@ namespace PNDS_BackEnd_Prod.Services
 
         // Licznik czasu
         private DateTime _lastRequestTime = DateTime.MinValue;
-        private bool _isPollingActive = false;
         private bool _sleepMessage = false;
         private readonly TimeSpan _timeout = TimeSpan.FromMinutes(2);
 
@@ -60,7 +60,6 @@ namespace PNDS_BackEnd_Prod.Services
             lock (_lock)
             {
                 _lastRequestTime = DateTime.Now;
-                _isPollingActive = true;
                 _sleepMessage = false;
                 // Zwracamy kopię, aby nikt "z zewnątrz" nie zmienił danych w serwisie
                 return new J1SeaStateData
@@ -86,7 +85,6 @@ namespace PNDS_BackEnd_Prod.Services
                 lock (_lock)
                 {
                     shouldPoll = (DateTime.Now - _lastRequestTime) < _timeout;
-                    _isPollingActive = shouldPoll;
                 }
 
                 if (shouldPoll)

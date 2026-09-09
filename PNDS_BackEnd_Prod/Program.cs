@@ -90,12 +90,16 @@ builder.Services.AddSingleton<IJ2MooringListService, J2MooringListService>();
 builder.Services.AddHttpClient<RecaptchaService>();
 builder.Services.AddScoped<ShipService>();
 
+var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>()?? new[] { "http://localhost" };
+
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("react",
-        p => p.AllowAnyHeader()
-        .AllowAnyMethod()
-        .AllowAnyOrigin());
+    options.AddPolicy("react", policy =>
+    {
+        policy.WithOrigins(allowedOrigins)
+              .WithMethods("GET", "POST")
+              .AllowAnyHeader();
+    });
 });
 
 var app = builder.Build();
