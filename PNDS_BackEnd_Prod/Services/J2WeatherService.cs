@@ -23,8 +23,8 @@ namespace PNDS_BackEnd_Prod.Services
 
     public class J2WeatherService : IJ2WeatherService, IDisposable
     {
-        private IOPCClient _opcClient;
-        private ILogger<J2WeatherService> _logger;
+        private readonly IOPCClient _opcClient;
+        private readonly ILogger<J2WeatherService> _logger;
         private bool _disposed = false;
 
         private J2WeatherData _currentData = new();
@@ -130,7 +130,27 @@ namespace PNDS_BackEnd_Prod.Services
             }//while
         }
 
-        public void Dispose() => _cts.Cancel();
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            if (disposing)
+            {
+                this._cts.Cancel();
+                this._cts.Dispose();
+            }
+            _disposed = true;
+        }
 
     }
 }

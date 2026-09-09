@@ -27,7 +27,7 @@ namespace PNDS_BackEnd_Prod.Services
         private readonly List<J2MooringService> _mooringServices = new();
 
 
-        private readonly object _lock = new(); // Dla bezpieczeństwa wątkowego
+        //chyba nie potrzeba private readonly object _lock = new(); // Dla bezpieczeństwa wątkowego
         private readonly CancellationTokenSource _cts = new();
 
         public J2MooringListService(IOPCClient opcClient, ILoggerFactory loggerFactory)
@@ -59,6 +59,7 @@ namespace PNDS_BackEnd_Prod.Services
         public void Dispose()
         {
             foreach (var s in _mooringServices) s.Stop();
+            this._cts.Dispose();
         }
     }
 
@@ -122,8 +123,9 @@ namespace PNDS_BackEnd_Prod.Services
 
 
             _ = RefreshLoop();
-
-          //  _logger.LogInformation("Creating J2 ShipDataReader");
+#if DEBUG
+            _logger.LogInformation("Creating J2 ShipDataReader");
+#endif
         }
 
         public int GetId()
@@ -173,7 +175,7 @@ namespace PNDS_BackEnd_Prod.Services
                     {
                         // Odczyt danych z OPC
 #if DEBUG
-                        _logger.LogInformation("Odczyt danych z OPC: J2MooringData " + _currentData.id.ToString());
+                        _logger.LogInformation("Odczyt danych z OPC: J2MooringData {DalbId} ", _currentData.id.ToString());
 #endif
                         var results = await _opcClient.OPC_ReadMultiple(_tags);
 
@@ -209,6 +211,28 @@ namespace PNDS_BackEnd_Prod.Services
         }
 
         public void Stop() => _cts.Cancel();
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            if (disposing)
+            {
+                this._cts.Cancel();
+                this._cts.Dispose();
+            }
+            _disposed = true;
+        }
 
     }
 }

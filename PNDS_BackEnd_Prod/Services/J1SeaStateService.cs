@@ -22,11 +22,11 @@ namespace PNDS_BackEnd_Prod.Services
 
     public class J1SeaStateService : IJ1SeaStateService, IDisposable
     {
-        private IOPCClient _opcClient;
-        private ILogger<J1SeaStateService> _logger;
+        private readonly IOPCClient _opcClient;
+        private readonly ILogger<J1SeaStateService> _logger;
         private bool _disposed = false;
 
-        private J1SeaStateData _currentData = new();
+        private readonly J1SeaStateData _currentData = new();
         private readonly object _lock = new(); // Dla bezpieczeństwa wątkowego
         private readonly CancellationTokenSource _cts = new();
         private readonly List<string> _tags = new()
@@ -51,8 +51,9 @@ namespace PNDS_BackEnd_Prod.Services
             _logger = logger;
             _opcClient = oPC;
             _ = RefreshLoop();
-
-          //  _logger.LogInformation("Creating J1 ShipDataReader");
+#if DEBUG
+            _logger.LogInformation("Creating J1 ShipDataReader");
+#endif
         }
 
         public J1SeaStateData GetCurrentData()
@@ -129,7 +130,27 @@ namespace PNDS_BackEnd_Prod.Services
             }//while
         }
 
-        public void Dispose() => _cts.Cancel();
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            if (disposing)
+            {
+                this._cts.Cancel();
+                this._cts.Dispose();
+            }
+            _disposed = true;
+        }
 
     }
 }
