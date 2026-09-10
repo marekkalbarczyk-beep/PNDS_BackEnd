@@ -9,7 +9,7 @@ namespace PNDS_BackEnd_Prod.Services
 {
 
 
-    public class shipData
+    public class ShipData
     {
         public string? shipName { get; set; }
         public string? shipPassword { get; set; }
@@ -40,14 +40,13 @@ namespace PNDS_BackEnd_Prod.Services
             try
             {
                 var json = await File.ReadAllTextAsync(_filePath);
-                var ships = JsonSerializer.Deserialize<List<shipData>>(json);
-                //string doubleHashedPassword = ComputeSha256Hash(password);
+                var ships = JsonSerializer.Deserialize<List<ShipData>>(json);
 
                 var dateNow = DateTime.UtcNow;
                 if (ships != null)
                 {
 #pragma warning disable CS8602 // Wyłuskanie odwołania, które może mieć wartość null.
-                    shipData? shipTMP = ships.FirstOrDefault(u => u.shipName.Equals(username, StringComparison.CurrentCultureIgnoreCase));
+                    ShipData? shipTMP = ships.FirstOrDefault(u => u.shipName.Equals(username, StringComparison.CurrentCultureIgnoreCase));
 #pragma warning restore CS8602 // Wyłuskanie odwołania, które może mieć wartość null.
                     if (shipTMP == null) {
                         Console.WriteLine(DateTime.Now.ToString() + " Ship validation " + username + " -1 : no ship name in database");
@@ -70,7 +69,6 @@ namespace PNDS_BackEnd_Prod.Services
                     }
                     Console.WriteLine(DateTime.Now.ToString() + " Ship validation " + username + " 1 : Success"); 
                     return 1;
-                    //return ships?.Any(u => u.shipName == username && u.shipPassword == password && u.shipExpire >= dateNow) ?? false;
                 }
                 return -97;
             }
@@ -82,19 +80,24 @@ namespace PNDS_BackEnd_Prod.Services
             }
         }
 
-        private string ComputeSha256Hash(string rawData)
+        private static string ComputeSha256Hash(string rawData)
         {
-            using (SHA256 sha256Hash = SHA256.Create())
-            {
-                byte[] bytes = sha256Hash.ComputeHash(Encoding.UTF8.GetBytes(rawData));
+            //do usunięcia po testach 
+            //using (SHA256 sha256Hash = SHA256.Create())
+            //{
+            //    byte[] bytes = sha256Hash.ComputeHash(Encoding.UTF8.GetBytes(rawData));
 
-                StringBuilder builder = new StringBuilder();
-                for (int i = 0; i < bytes.Length; i++)
-                {
-                    builder.Append(bytes[i].ToString("x2"));
-                }
-                return builder.ToString();
-            }
+            //    StringBuilder builder = new StringBuilder();
+            //    for (int i = 0; i < bytes.Length; i++)
+            //    {
+            //        builder.Append(bytes[i].ToString("x2"));
+            //    }
+            //    return builder.ToString();
+            //}
+            byte[] bytes = Encoding.UTF8.GetBytes(rawData);
+            byte[] hash = SHA256.HashData(bytes);
+
+            return Convert.ToHexStringLower(hash);
         }
     }
 }

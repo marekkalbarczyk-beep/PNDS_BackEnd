@@ -37,9 +37,9 @@ public class RecaptchaService
             _logger.LogWarning("reCAPTCHA result is null");
             return false;
         }
-        // W v3 wynik 0.5 to zazwyczaj "człowiek", ale możesz to dostosować
-        //Console.WriteLine(DateTime.Now.ToString() + "reCAPTCHA score" + result.Score);
-        _logger.LogInformation("reCAPTCHA score" + result.Score);
+#if DEBUG
+        _logger.LogInformation("reCAPTCHA score {score}", result.Score);
+#endif
         return result.Success && result.Score >= 0.5;
 
       

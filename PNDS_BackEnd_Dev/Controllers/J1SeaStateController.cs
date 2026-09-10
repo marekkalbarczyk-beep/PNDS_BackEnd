@@ -1,11 +1,11 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using PNDS_BackEnd_Dev.Services;
+using PNDS_BackEnd_Prod.Services;
 
-namespace PNDS_BackEnd_Dev.Controllers
+namespace PNDS_BackEnd_Prod.Controllers
 {
     [ApiController]
- //   [Authorize]
+    [Authorize]
     [Produces("application/json")]
     [Route("/data/J1SeaStateData")]
 

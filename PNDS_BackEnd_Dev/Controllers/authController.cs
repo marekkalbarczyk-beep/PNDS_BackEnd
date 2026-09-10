@@ -3,24 +3,24 @@ using System.Security.Claims;
 using System.Text;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
-using PNDS_BackEnd_Dev.Models;
-using PNDS_BackEnd_Dev.Services;
+using PNDS_BackEnd_Prod.Models;
+using PNDS_BackEnd_Prod.Services;
 
-namespace PNDS_BackEnd_Dev.Controllers
+namespace PNDS_BackEnd_Prod.Controllers
 {
 
 
     [ApiController]
     [Route("/auth")]
-    public class authController : ControllerBase
+    public class AuthController : ControllerBase
     {
 
         private readonly RecaptchaService _captcha;
         private readonly ShipService _user;
         private readonly IConfiguration _config;
-        private readonly ILogger<authController> _logger;
+        private readonly ILogger<AuthController> _logger;
 
-        public authController(RecaptchaService captcha, ShipService user , IConfiguration config, ILogger<authController> logger)
+        public AuthController(RecaptchaService captcha, ShipService user , IConfiguration config, ILogger<AuthController> logger)
         {
             _captcha = captcha;
             _user = user;
@@ -59,7 +59,7 @@ namespace PNDS_BackEnd_Dev.Controllers
             if (isValidUser == 1)
             {
                 var tokenHandler = new JwtSecurityTokenHandler();
-                //var key = Encoding.ASCII.GetBytes("Twoj_Bardzo_Dlugi_I_Tajny_Klucz_Min_32_Znaki");
+               
                 var keyRead = _config["BearerJWT:Key"];
                 if (keyRead == null)
                 {
@@ -68,12 +68,14 @@ namespace PNDS_BackEnd_Dev.Controllers
                 }
 
                 var key = Encoding.ASCII.GetBytes(keyRead);
+                var securityKey = new SymmetricSecurityKey(key);
+                var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
 
                 var tokenDescriptor = new SecurityTokenDescriptor
                 {
                     Subject = new ClaimsIdentity(new[] { new Claim(ClaimTypes.Name, request.Login) }),
                     Expires = DateTime.UtcNow.AddHours(72),
-                    SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+                    SigningCredentials = credentials
                 };
 
                 var token = tokenHandler.CreateToken(tokenDescriptor);
@@ -81,7 +83,7 @@ namespace PNDS_BackEnd_Dev.Controllers
 
                 _logger.LogInformation("Login successfull for vessel: {Username}", request.Login);
                 return Ok(new { clientToken = tokenString });
-               // return Ok(new { message = "Login success" });
+               
             }
             switch (isValidUser)
             {

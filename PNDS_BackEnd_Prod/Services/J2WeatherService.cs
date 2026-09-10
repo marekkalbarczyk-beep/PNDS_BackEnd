@@ -27,7 +27,7 @@ namespace PNDS_BackEnd_Prod.Services
         private readonly ILogger<J2WeatherService> _logger;
         private bool _disposed = false;
 
-        private J2WeatherData _currentData = new();
+        private readonly J2WeatherData _currentData = new();
         private readonly object _lock = new(); // Dla bezpieczeństwa wątkowego
         private readonly CancellationTokenSource _cts = new();
         private readonly List<string> _tags = new()
@@ -52,8 +52,9 @@ namespace PNDS_BackEnd_Prod.Services
             _logger = logger;
             _opcClient = oPC;
             _ = RefreshLoop();
-
-          //  _logger.LogInformation("Creating J2 ShipDataReader");
+#if DEBUG
+            _logger.LogInformation("Creating J2 ShipDataReader");
+#endif
         }
 
         public J2WeatherData GetCurrentData()

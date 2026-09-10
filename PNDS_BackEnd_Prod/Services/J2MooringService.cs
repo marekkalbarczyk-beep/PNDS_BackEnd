@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using BitFaster.Caching;
 using PNDS_BackEnd_Prod.OPC_Client;
 
 namespace PNDS_BackEnd_Prod.Services
@@ -25,10 +26,7 @@ namespace PNDS_BackEnd_Prod.Services
     {
 
         private readonly List<J2MooringService> _mooringServices = new();
-
-
-        //chyba nie potrzeba private readonly object _lock = new(); // Dla bezpieczeństwa wątkowego
-        private readonly CancellationTokenSource _cts = new();
+        private bool _disposed = false;
 
         public J2MooringListService(IOPCClient opcClient, ILoggerFactory loggerFactory)
         {
@@ -58,13 +56,30 @@ namespace PNDS_BackEnd_Prod.Services
 
         public void Dispose()
         {
-            foreach (var s in _mooringServices) s.Stop();
-            this._cts.Dispose();
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            if (disposing)
+            {
+                foreach (var s in _mooringServices)
+                {
+                    s.Dispose();
+                }
+            }
+            _disposed = true;
         }
     }
 
 
-    public class J2MooringService 
+    public class J2MooringService : IDisposable
     {
         private readonly IOPCClient _opcClient;
         private readonly ILogger<J2MooringService> _logger;
@@ -77,7 +92,7 @@ namespace PNDS_BackEnd_Prod.Services
         private readonly TimeSpan _timeout = TimeSpan.FromMinutes(3);
         private bool _sleepMessage = false;
 
-        private Random rnd = new();
+        private readonly Random rnd = new();
 
         private static readonly Dictionary<int, string> _dalbTagsbMap = new()
             {
@@ -209,8 +224,6 @@ namespace PNDS_BackEnd_Prod.Services
                 }
             }//while
         }
-
-        public void Stop() => _cts.Cancel();
 
         public void Dispose()
         {

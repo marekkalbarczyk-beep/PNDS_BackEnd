@@ -68,28 +68,27 @@ namespace PNDS_BackEnd_Prod.OPC_Client
         private readonly ILogger<OPCClient> _logger;
 
         private static string? password = null;
-        private EndpointDescription? endpointDescription = null;
         private readonly bool useSecurity = false;
         
         private static string applicationName = "PNDS_OPC_Client";
         private static string configSectionName = "PNDS.OPC_Client";
 
-        private ITransportWaitingConnection connection = null!;
+        private readonly ITransportWaitingConnection connection = null!;
         private readonly uint SessionLifeTime = 60 * 1000;
         private CancellationToken ct = default;
 
         // Define the UA Client application
         private static CertificatePasswordProvider PasswordProvider = new CertificatePasswordProvider(password);
         private static ITelemetryContext telemetry = new SerilogTelemetryContext();
-        private ApplicationInstance AppInstance = new ApplicationInstance(telemetry)
+        private readonly ApplicationInstance AppInstance = new ApplicationInstance(telemetry)
         {
             ApplicationName = applicationName,
             ApplicationType = ApplicationType.Client,
             ConfigSectionName = configSectionName,
             CertificatePasswordProvider = PasswordProvider
         };
-        private ApplicationConfiguration AppConfiguration = new();
-        private ConfiguredEndpoint endpoint = new();
+        
+        private readonly ConfiguredEndpoint endpoint = new();
 
         private readonly  Uri serverUrl;
 
@@ -113,6 +112,9 @@ namespace PNDS_BackEnd_Prod.OPC_Client
 
         public async Task Connect()
         {
+            ApplicationConfiguration AppConfiguration;
+            EndpointDescription? endpointDescription;
+
             if (!ConnectionInProgress) { 
                 ConnectionInProgress = true;
                 _logger.LogInformation("Checking OPC session");
@@ -385,9 +387,5 @@ namespace PNDS_BackEnd_Prod.OPC_Client
             return results;
         }
 
-        public void OPC_Client_Disconnect()
-        {
-
-        }
     }
 }

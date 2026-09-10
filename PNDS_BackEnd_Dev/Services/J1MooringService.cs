@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using PNDS_BackEnd_Dev.OPC_Client;
+using PNDS_BackEnd_Prod.OPC_Client;
 
-namespace PNDS_BackEnd_Dev.Services
+namespace PNDS_BackEnd_Prod.Services
 {
     public class J1MooringData
     {
@@ -25,10 +25,7 @@ namespace PNDS_BackEnd_Dev.Services
     {
 
         private readonly List<J1MooringService> _mooringServices = new();
-
-
-        private readonly object _lock = new(); // Dla bezpieczeństwa wątkowego
-        private readonly CancellationTokenSource _cts = new();
+        private bool _disposed = false;
 
         public J1MooringListService(IOPCClient opcClient, ILoggerFactory loggerFactory)
         {
@@ -54,25 +51,43 @@ namespace PNDS_BackEnd_Dev.Services
 
         public void Dispose()
         {
-            foreach (var s in _mooringServices) s.Stop();
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            if (disposing)
+            {
+                foreach (var s in _mooringServices)
+                {
+                    s.Dispose();
+                }
+            }
+            _disposed = true;
         }
     }
 
 
-    public class J1MooringService 
+    public class J1MooringService : IDisposable
     {
         private readonly IOPCClient _opcClient;
         private readonly ILogger<J1MooringService> _logger;
         private readonly J1MooringData _currentData;
+        private bool _disposed = false;
         private readonly object _lock = new();
         private readonly CancellationTokenSource _cts = new();
 
         private DateTime _lastRequestTime = DateTime.MinValue;
         private readonly TimeSpan _timeout = TimeSpan.FromMinutes(3);
-        private bool _isPollingActive = false;
         private bool _sleepMessage = false;
 
-        private Random rnd = new();
+        private readonly Random rnd = new();
 
         private static readonly Dictionary<int, string> _dalbTagsbMap = new()
             {
@@ -92,7 +107,7 @@ namespace PNDS_BackEnd_Dev.Services
 
 
 
-        public J1MooringService( int id, string name, int noOfHooks, bool status, IOPCClient oPC, ILogger<J1MooringService> logger)
+        public J1MooringService(int id, string name, int noOfHooks, bool status, IOPCClient oPC, ILogger<J1MooringService> logger)
         {
 
             _logger = logger;
@@ -114,8 +129,9 @@ namespace PNDS_BackEnd_Dev.Services
 
 
             _ = RefreshLoop();
-
-          //  _logger.LogInformation("Creating J1 ShipDataReader");
+#if DEBUG
+            _logger.LogInformation("Creating J1 ShipDataReader");
+#endif
         }
 
         public int GetId()
@@ -128,7 +144,6 @@ namespace PNDS_BackEnd_Dev.Services
             lock (_lock)
             {
                 _lastRequestTime = DateTime.Now;
-                _isPollingActive = true;
                 _sleepMessage = false;
 
                 // Zwracamy kopię obiektu
@@ -156,7 +171,6 @@ namespace PNDS_BackEnd_Dev.Services
                 lock (_lock)
                 {
                     shouldPoll = (DateTime.Now - _lastRequestTime) < _timeout;
-                    _isPollingActive = shouldPoll;
                 }
 
                 if (shouldPoll)
@@ -166,7 +180,7 @@ namespace PNDS_BackEnd_Dev.Services
                     {
                         // Odczyt danych z OPC
 #if DEBUG
-                        _logger.LogInformation("Odczyt danych z OPC: J1MooringData " + _currentData.id.ToString());
+                        _logger.LogInformation("Odczyt danych z OPC: J1MooringData {DalbId}", _currentData.id.ToString());
 #endif
                         var results = await _opcClient.OPC_ReadMultiple(_tags);
 
@@ -194,14 +208,33 @@ namespace PNDS_BackEnd_Dev.Services
                 {
                     if (!_sleepMessage)
                     {
-                        _logger.LogInformation("OPC Polling is sleeping: J1MooringData " + _currentData.id.ToString());
+                        _logger.LogInformation("OPC Polling is sleeping: J1MooringData {DataId}", _currentData.id.ToString());
                         _sleepMessage = true;
                     }
                 }
             }//while
         }
 
-        public void Stop() => _cts.Cancel();
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
 
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            if (disposing)
+            {
+                this._cts.Cancel();
+                this._cts.Dispose();
+            }
+            _disposed = true;
+        }
     }
 }

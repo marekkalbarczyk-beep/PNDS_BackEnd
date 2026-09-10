@@ -1,6 +1,6 @@
-﻿using PNDS_BackEnd_Dev.OPC_Client;
+﻿using PNDS_BackEnd_Prod.OPC_Client;
 
-namespace PNDS_BackEnd_Dev.Services
+namespace PNDS_BackEnd_Prod.Services
 {
     public class J1BerthingData
     {
@@ -22,10 +22,12 @@ namespace PNDS_BackEnd_Dev.Services
 
     public class J1BerthingService : IJ1BerthingService, IDisposable
     {
-        private IOPCClient _opcClient;
-        private ILogger<J1BerthingService> _logger;
+        private readonly IOPCClient _opcClient;
+        private readonly ILogger<J1BerthingService> _logger;
 
-        private J1BerthingData _currentData = new();
+        private bool _disposed = false;
+
+        private readonly J1BerthingData _currentData = new();
         private readonly object _lock = new(); // Dla bezpieczeństwa wątkowego
         private readonly CancellationTokenSource _cts = new();
         private readonly List<string> _tags = new()
@@ -40,7 +42,6 @@ namespace PNDS_BackEnd_Dev.Services
 
         // Licznik czasu
         private DateTime _lastRequestTime = DateTime.MinValue;
-        private bool _isPollingActive = false;
         private bool _sleepMessage = false;
         private readonly TimeSpan _timeout = TimeSpan.FromMinutes(2);
 
@@ -50,8 +51,6 @@ namespace PNDS_BackEnd_Dev.Services
             _logger = logger;
             _opcClient = oPC;
             _ = RefreshLoop();
-
-          //  _logger.LogInformation("Creating J1 ShipDataReader");
         }
 
         public J1BerthingData GetCurrentData()
@@ -59,7 +58,6 @@ namespace PNDS_BackEnd_Dev.Services
             lock (_lock)
             {
                 _lastRequestTime = DateTime.Now;
-                _isPollingActive = true;
                 _sleepMessage = false;
                 // Zwracamy kopię, aby nikt "z zewnątrz" nie zmienił danych w serwisie
                 return new J1BerthingData
@@ -84,7 +82,6 @@ namespace PNDS_BackEnd_Dev.Services
                 lock (_lock)
                 {
                     shouldPoll = (DateTime.Now - _lastRequestTime) < _timeout;
-                    _isPollingActive = shouldPoll;
                 }
 
                 if (shouldPoll)
@@ -105,8 +102,8 @@ namespace PNDS_BackEnd_Dev.Services
                                 _currentData.J1Angle = Convert.ToInt32(results[0].Value);
                                 _currentData.J1Laser_L_Distance = Convert.ToSingle(results[1].Value);
                                 _currentData.J1Laser_R_Distance = Convert.ToSingle(results[2].Value);
-                                _currentData.J1Laser_L_Speed = Convert.ToSingle(results[3].Value); ;
-                                _currentData.J1Laser_R_Speed = Convert.ToSingle(results[4].Value); ;
+                                _currentData.J1Laser_L_Speed = Convert.ToSingle(results[3].Value);
+                                _currentData.J1Laser_R_Speed = Convert.ToSingle(results[4].Value);
                                 _currentData.J1Status = true;
                             }
                         }
@@ -128,7 +125,29 @@ namespace PNDS_BackEnd_Dev.Services
             }//while
         }
 
-        public void Dispose() => _cts.Cancel();
+        public void Cancel() => _cts.Cancel();
+
+       public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            if (disposing)
+            {
+                this._cts.Cancel();
+                this._cts.Dispose();
+            }
+            _disposed = true;
+        }
 
     }
 }

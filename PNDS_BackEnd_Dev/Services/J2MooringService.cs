@@ -1,7 +1,8 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using PNDS_BackEnd_Dev.OPC_Client;
+using BitFaster.Caching;
+using PNDS_BackEnd_Prod.OPC_Client;
 
-namespace PNDS_BackEnd_Dev.Services
+namespace PNDS_BackEnd_Prod.Services
 {
     public class J2MooringData
     {
@@ -25,10 +26,7 @@ namespace PNDS_BackEnd_Dev.Services
     {
 
         private readonly List<J2MooringService> _mooringServices = new();
-
-
-        private readonly object _lock = new(); // Dla bezpieczeństwa wątkowego
-        private readonly CancellationTokenSource _cts = new();
+        private bool _disposed = false;
 
         public J2MooringListService(IOPCClient opcClient, ILoggerFactory loggerFactory)
         {
@@ -58,25 +56,43 @@ namespace PNDS_BackEnd_Dev.Services
 
         public void Dispose()
         {
-            foreach (var s in _mooringServices) s.Stop();
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            if (disposing)
+            {
+                foreach (var s in _mooringServices)
+                {
+                    s.Dispose();
+                }
+            }
+            _disposed = true;
         }
     }
 
 
-    public class J2MooringService 
+    public class J2MooringService : IDisposable
     {
         private readonly IOPCClient _opcClient;
         private readonly ILogger<J2MooringService> _logger;
+        private bool _disposed = false;
         private readonly J2MooringData _currentData;
         private readonly object _lock = new();
         private readonly CancellationTokenSource _cts = new();
 
         private DateTime _lastRequestTime = DateTime.MinValue;
         private readonly TimeSpan _timeout = TimeSpan.FromMinutes(3);
-        private bool _isPollingActive = false;
         private bool _sleepMessage = false;
 
-        private Random rnd = new();
+        private readonly Random rnd = new();
 
         private static readonly Dictionary<int, string> _dalbTagsbMap = new()
             {
@@ -122,8 +138,9 @@ namespace PNDS_BackEnd_Dev.Services
 
 
             _ = RefreshLoop();
-
-          //  _logger.LogInformation("Creating J2 ShipDataReader");
+#if DEBUG
+            _logger.LogInformation("Creating J2 ShipDataReader");
+#endif
         }
 
         public int GetId()
@@ -137,7 +154,6 @@ namespace PNDS_BackEnd_Dev.Services
             lock (_lock)
             {
                 _lastRequestTime = DateTime.Now;
-                _isPollingActive = true;
                 _sleepMessage = false;
 
                 // Zwracamy kopię obiektu
@@ -165,7 +181,6 @@ namespace PNDS_BackEnd_Dev.Services
                 lock (_lock)
                 {
                     shouldPoll = (DateTime.Now - _lastRequestTime) < _timeout;
-                    _isPollingActive = shouldPoll;
                 }
 
                 if (shouldPoll)
@@ -175,7 +190,7 @@ namespace PNDS_BackEnd_Dev.Services
                     {
                         // Odczyt danych z OPC
 #if DEBUG
-                        _logger.LogInformation("Odczyt danych z OPC: J2MooringData " + _currentData.id.ToString());
+                        _logger.LogInformation("Odczyt danych z OPC: J2MooringData {DalbId} ", _currentData.id.ToString());
 #endif
                         var results = await _opcClient.OPC_ReadMultiple(_tags);
 
@@ -203,14 +218,34 @@ namespace PNDS_BackEnd_Dev.Services
                 {
                     if (!_sleepMessage)
                     {
-                        _logger.LogInformation("OPC Polling is sleeping: J2MooringData " + _currentData.id.ToString());
+                        _logger.LogInformation("OPC Polling is sleeping: J2MooringData {DataId}", _currentData.id.ToString());
                         _sleepMessage = true;
                     }
                 }
             }//while
         }
 
-        public void Stop() => _cts.Cancel();
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            if (disposing)
+            {
+                this._cts.Cancel();
+                this._cts.Dispose();
+            }
+            _disposed = true;
+        }
 
     }
 }

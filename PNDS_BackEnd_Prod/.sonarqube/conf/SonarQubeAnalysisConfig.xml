@@ -276,6 +276,8 @@
   <LocalSettings>
     <Property Name="sonar.host.url">https://wrosqe01.gaz-system.pl</Property>
     <Property Name="sonar.exclusions">appsettings.json</Property>
+    <Property Name="sonar.cpd.exclusions">**/*.cs</Property>
+    <Property Name="sonar.coverage.exclusions">**/*.cs</Property>
   </LocalSettings>
   <ScannerOptsSettings>
     <Property Name="javax.net.ssl.trustStoreType">Windows-ROOT</Property>

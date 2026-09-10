@@ -8,13 +8,13 @@ using Newtonsoft.Json.Linq;
 using Opc.Ua;
 using Opc.Ua.Client;
 using Opc.Ua.Configuration;
-using PNDS_BackEnd_Dev.Services;
+using PNDS_BackEnd_Prod.Services;
 using Serilog;
 using Serilog.Events;
 using Serilog.Extensions.Logging;
 
 
-namespace PNDS_BackEnd_Dev.OPC_Client
+namespace PNDS_BackEnd_Prod.OPC_Client
 {
 
     public readonly record struct OpcResult<T>(bool Status, T? Value);
@@ -24,8 +24,7 @@ namespace PNDS_BackEnd_Dev.OPC_Client
     {
         Task Connect();
         bool OPC_Client_Connected();
-        Task<OpcResult<T>> OPC_Read<T>(string key);
-        //void OPC_Client_Disconnect();
+        Task<OpcResult<T>> OPC_Read<T>(string nodeId);
         Task<List<OpcResult<object>>> OPC_ReadMultiple(List<string> nodeIds);
     }
 
@@ -66,68 +65,56 @@ namespace PNDS_BackEnd_Dev.OPC_Client
 
     public class OPCClient : IOPCClient
     {
-
         private readonly ILogger<OPCClient> _logger;
-       // private readonly IConfiguration _config;
-
-        private string OPC_Uri = String.Empty;
-
 
         private static string? password = null;
-        private EndpointDescription? endpointDescription = null;
         private readonly bool useSecurity = false;
         
         private static string applicationName = "PNDS_OPC_Client";
         private static string configSectionName = "PNDS.OPC_Client";
 
-        private ITransportWaitingConnection connection = null!;
-        private uint SessionLifeTime = 60 * 1000;
-        //IUserIdentity UserIdentity = new UserIdentity(username, userpassword ?? string.Empty);
+        private readonly ITransportWaitingConnection connection = null!;
+        private readonly uint SessionLifeTime = 60 * 1000;
         private CancellationToken ct = default;
 
         // Define the UA Client application
         private static CertificatePasswordProvider PasswordProvider = new CertificatePasswordProvider(password);
         private static ITelemetryContext telemetry = new SerilogTelemetryContext();
-        private ApplicationInstance AppInstance = new ApplicationInstance(telemetry)
+        private readonly ApplicationInstance AppInstance = new ApplicationInstance(telemetry)
         {
             ApplicationName = applicationName,
             ApplicationType = ApplicationType.Client,
             ConfigSectionName = configSectionName,
             CertificatePasswordProvider = PasswordProvider
         };
-        private ApplicationConfiguration AppConfiguration = new();
-        private ConfiguredEndpoint endpoint = new();
-        //private Uri serverUrl= new Uri("opc.tcp://10.102.254.102:4863/");
-        private Uri serverUrl = new Uri("opc.tcp://10.102.36.100:48010/");
+        
+        private readonly ConfiguredEndpoint endpoint = new();
 
-        private static Opc.Ua.Client.ISession? session;
-        private static bool ConnectionInProgress = false;
+        private readonly  Uri serverUrl;
 
-        //private static readonly Serilog.ILogger _logger = Log.ForContext(typeof(OPCClient));
-
-        //private Opc.Ua.Client.ISession? session;
-        //private bool ConnectionInProgress = false;
+        private Opc.Ua.Client.ISession? session;
+        private bool ConnectionInProgress = false;
 
 
-        //public getOPCURI_from_configiration(IConfiguration configuration)
-        //{
-        //    // Odczytujemy wartość z sekcji UserSettings:JsonFilePath
-        //    // Jeśli nie zostanie znaleziona, domyślnie używamy "users.json"
-        //    serverUrl = new Uri(configuration["OPCSources:PNDSOPCSSource"]) ?? new Uri("opc.tcp://10.102.254.102:4863/");
-        //}
-
-        public OPCClient(ILogger<OPCClient> logger)
+        public OPCClient(ILogger<OPCClient> logger, IConfiguration config)
         {
-
-            
-            //_config = config;
             _logger = logger;
+            
+            IConfiguration _config = config;
 
-           _logger.LogInformation ("Create OPC Client instance");
+            _logger.LogInformation ("Create OPC Client instance");
+
+            string urlString = _config["OPCSources:PNDSOPCSSource"]
+                           ?? throw new InvalidOperationException("Brak konfiguracji 'OPCSources:PNDSOPCSSource' w pliku konfiguracyjnym.");
+
+            serverUrl = new Uri(urlString);
         }
 
         public async Task Connect()
         {
+            ApplicationConfiguration AppConfiguration;
+            EndpointDescription? endpointDescription;
+
             if (!ConnectionInProgress) { 
                 ConnectionInProgress = true;
                 _logger.LogInformation("Checking OPC session");
@@ -143,18 +130,17 @@ namespace PNDS_BackEnd_Dev.OPC_Client
 
                         if (!haveAppCertificate)
                         {
-                            throw new Exception("Application instance certificate invalid!");
+                            throw new InvalidOperationException("Application instance certificate invalid!");
                         }
 
                         endpointDescription = await CoreClientUtils.SelectEndpointAsync(AppConfiguration, serverUrl.ToString(), useSecurity, telemetry);
 
                         EndpointConfiguration endpointConfiguration = EndpointConfiguration.Create(AppConfiguration);
-                       // endpoint = new ConfiguredEndpoint(null, endpointDescription, endpointConfiguration);
                         endpoint.Update(endpointConfiguration);
                         endpoint.Update(endpointDescription);
 
                         var sessionFactory = new DefaultSessionFactory(telemetry);
-                        //Session OPC_session = new Session( , m_configuration, )
+
                         var _session = await sessionFactory.CreateAsync(
                                 AppInstance.ApplicationConfiguration,
                                 connection,
@@ -171,23 +157,24 @@ namespace PNDS_BackEnd_Dev.OPC_Client
                         session.KeepAliveInterval = 5000;
                         session.DeleteSubscriptionsOnClose = false;
                         session.TransferSubscriptionsOnReconnect = true;
-                        _logger.LogInformation("OPC session established");
-                        _logger.LogInformation(session.Endpoint.EndpointUrl);
-                        _logger.LogInformation(session.Endpoint.SecurityPolicyUri);
-
+                        _logger.LogInformation("OPC session established {Url} {Policy}", session.Endpoint.EndpointUrl, session.Endpoint.SecurityPolicyUri);
+                      
                         session.KeepAlive += (sender, e) =>
                         {
                             if (ServiceResult.IsBad(e.Status))
                             {
-                                _logger.LogWarning("Problem z połączeniem: {0}. Próba odnowienia...", e.Status);
-                                // Tutaj możesz ustawić flagę błędu dla Twoich serwisów
+                                _logger.LogWarning("Problem z połączeniem: {Status}. Próba odnowienia...", e.Status);
+
                                 session.Dispose();
                                 session = null;
+                                // Tutaj możesz ustawić flagę błędu dla Twoich serwisów
                             }
                             else
                             {
                                 // To zdarzenie wyzwala się m.in. przy odświeżaniu tokenów
-                                _logger.LogInformation("Sesja żyje. Stan: {0}", e.CurrentState);
+#if DEBUG
+                                _logger.LogInformation("Sesja żyje. Stan: {SessionState}", e.CurrentState);
+#endif
                             }
                         };
 
@@ -196,8 +183,7 @@ namespace PNDS_BackEnd_Dev.OPC_Client
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError("OPC Client session creation failed\n" + ex.Message);
-                    
+                    _logger.LogError(ex, "OPC Client session creation failed\n  {Message}", ex.Message);          
                 }
                 finally
                 {
@@ -213,10 +199,6 @@ namespace PNDS_BackEnd_Dev.OPC_Client
                 return false;
             }
             return session.Connected;
-        }
-        ~OPCClient()
-        {
-
         }
 
         public async Task<OpcResult<T>> OPC_Read<T>(string nodeId)
@@ -241,8 +223,8 @@ namespace PNDS_BackEnd_Dev.OPC_Client
             }
             catch (ServiceResultException srex)
             {
-                _logger.LogWarning("OPC Service Error: {Code}", srex.StatusCode);
-                if (srex.StatusCode == Opc.Ua.StatusCodes.BadSessionIdInvalid || srex.StatusCode == Opc.Ua.StatusCodes.BadSessionClosed)
+                _logger.LogWarning(srex, "OPC Service Error: {Code}", srex.StatusCode);
+                if (srex.StatusCode == Opc.Ua.StatusCodes.BadSessionIdInvalid || srex.StatusCode == Opc.Ua.StatusCodes.BadSessionClosed || srex.StatusCode == Opc.Ua.StatusCodes.BadConnectionClosed)
                 {
                     session?.Dispose();
                     session = null;
@@ -251,8 +233,7 @@ namespace PNDS_BackEnd_Dev.OPC_Client
             }
             catch (Exception ex)
             {
-                 _logger.LogWarning(" OPC Read failed with key " + nodeId);
-                _logger.LogWarning(ex.Message);
+                _logger.LogWarning(ex, " OPC Read failed with key {NodeId}, {MessageEx}", nodeId, ex.Message);
                 if (ex.Message == "BadNotReadable")
                 {
                     //do nothing
@@ -277,13 +258,13 @@ namespace PNDS_BackEnd_Dev.OPC_Client
                             try
                             {
                                 _logger.LogInformation("OPCClient trying to reconnect");
-                                Task t = Task.Run(() => session.ReconnectAsync());
-                                t.Wait();
+                                await session.ReconnectAsync();
                             }
                             catch (Exception ex2)
                             {
-                                _logger.LogError(" Reconnect failed: " + ex2.Message);
+                                _logger.LogError(ex2, " Reconnect failed: {MessageEx2}", ex2.Message);
                                 session.Dispose();
+                                session = null;
                             }
                         }
                         else
@@ -295,7 +276,7 @@ namespace PNDS_BackEnd_Dev.OPC_Client
                             }
                             catch (Exception ex3)
                             {
-                                _logger.LogError(" Reconnect failed: " + ex3.Message);
+                                _logger.LogError(ex3, " Reconnect failed: {MessageEx3}", ex3.Message);
                             }
                         }
                         ConnectionInProgress = false;
@@ -344,7 +325,7 @@ namespace PNDS_BackEnd_Dev.OPC_Client
             }
             catch (ServiceResultException srex)
             {
-                _logger.LogWarning("OPC Service Error: {Code}", srex.StatusCode);
+                _logger.LogWarning(srex, "OPC Service Error: {Code}", srex.StatusCode);
                 if (srex.StatusCode == Opc.Ua.StatusCodes.BadSessionIdInvalid || srex.StatusCode == Opc.Ua.StatusCodes.BadSessionClosed || srex.StatusCode == Opc.Ua.StatusCodes.BadConnectionClosed)
                 {
                     session?.Dispose();
@@ -354,7 +335,7 @@ namespace PNDS_BackEnd_Dev.OPC_Client
             }
             catch (Exception ex)
             {
-                _logger.LogError("Błąd odczytu grupowego: {Msg}", ex.Message);
+                _logger.LogError(ex, "Błąd odczytu grupowego: {Msg}", ex.Message);
                 if (ex.Message == "BadNotReadable")
                 {
                     //do nothing
@@ -382,7 +363,7 @@ namespace PNDS_BackEnd_Dev.OPC_Client
                             }
                             catch (Exception ex2)
                             {
-                                _logger.LogError(" Reconnect failed: " + ex2.Message);
+                                _logger.LogError(ex2, " Reconnect failed: {MessageEx2}", ex2.Message);
                                 session.Dispose();
                             }
                         }
@@ -396,7 +377,7 @@ namespace PNDS_BackEnd_Dev.OPC_Client
                             }
                             catch (Exception ex3)
                             {
-                                _logger.LogError(" Reconnect failed: " + ex3.Message);
+                                _logger.LogError(ex3, " Reconnect failed: {MessageEx3}", ex3.Message);
                             }
                         }
                         ConnectionInProgress = false;
@@ -406,9 +387,5 @@ namespace PNDS_BackEnd_Dev.OPC_Client
             return results;
         }
 
-        public void OPC_Client_Disconnect()
-        {
-
-        }
     }
 }

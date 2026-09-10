@@ -1,8 +1,8 @@
 ﻿using System.Text.Json;
-using PNDS_BackEnd_Dev.Controllers;
-using PNDS_BackEnd_Dev.Models;
+using PNDS_BackEnd_Prod.Controllers;
+using PNDS_BackEnd_Prod.Models;
 
-namespace PNDS_BackEnd_Dev.Services;
+namespace PNDS_BackEnd_Prod.Services;
 public class RecaptchaService
 {
     private readonly HttpClient _client;
@@ -37,9 +37,9 @@ public class RecaptchaService
             _logger.LogWarning("reCAPTCHA result is null");
             return false;
         }
-        // W v3 wynik 0.5 to zazwyczaj "człowiek", ale możesz to dostosować
-        //Console.WriteLine(DateTime.Now.ToString() + "reCAPTCHA score" + result.Score);
-        _logger.LogInformation("reCAPTCHA score" + result.Score);
+#if DEBUG
+        _logger.LogInformation("reCAPTCHA score {score}", result.Score);
+#endif
         return result.Success && result.Score >= 0.5;
 
       

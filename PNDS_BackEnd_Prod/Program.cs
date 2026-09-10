@@ -8,46 +8,51 @@ using Serilog;
 using Serilog.Events;
 using Serilog.Filters;
 
+var builder = WebApplication.CreateBuilder(args);
+
 // Konfiguracja Seriloga
+
+var LogPath = builder.Configuration["LogSettings:LogPath"] ??= "c:/PNDS/Logs/";
+
 Log.Logger = new LoggerConfiguration()
 #if DEBUG
     .WriteTo.Console()
 #endif
-    .WriteTo.File("c:/PNDS/Logs/log-.log",
-                    rollingInterval: RollingInterval.Hour,
+    .WriteTo.File(LogPath+"log-.log",
+                    rollingInterval: RollingInterval.Day,
                     restrictedToMinimumLevel: LogEventLevel.Information,
-                    retainedFileCountLimit: 7,             // Przechowuj tylko 7 ostatnich plików (tydzień)
-                    fileSizeLimitBytes: 10 * 1024 * 1024, // Opcjonalnie: limit 10MB na plik
+                    retainedFileCountLimit: 30,             // Przechowuj tylko 30 ostatnich plików 
+                    fileSizeLimitBytes: 100 * 1024 * 1024, // Opcjonalnie: limit 100MB na plik
                     rollOnFileSizeLimit: true)
     .WriteTo.Logger(lc => lc
         .Filter.ByIncludingOnly(Matching.FromSource<PNDS_BackEnd_Prod.Controllers.AuthController>())
-        .WriteTo.File("c:/PNDS/logs/auth-.log",
+        .WriteTo.File(LogPath + "auth-.log",
                     rollingInterval: RollingInterval.Day,
                     restrictedToMinimumLevel: LogEventLevel.Information,
-                    retainedFileCountLimit: 7,             // Przechowuj tylko 7 ostatnich plików (tydzień)
+                    retainedFileCountLimit: 30,             // Przechowuj tylko 7 ostatnich plików (tydzień)
                     fileSizeLimitBytes: 10 * 1024 * 1024, // Opcjonalnie: limit 10MB na plik
                     rollOnFileSizeLimit: true))
     .WriteTo.Logger(lc => lc
         .Filter.ByIncludingOnly(Matching.FromSource<PNDS_BackEnd_Prod.Services.RecaptchaService>())
-        .WriteTo.File("c:/PNDS/logs/reCap-.log",
+        .WriteTo.File(LogPath + "reCap-.log",
                     rollingInterval: RollingInterval.Day,
                     restrictedToMinimumLevel: LogEventLevel.Information,
-                    retainedFileCountLimit: 7,             // Przechowuj tylko 7 ostatnich plików (tydzień)
+                    retainedFileCountLimit: 30,             // Przechowuj tylko 7 ostatnich plików (tydzień)
                     fileSizeLimitBytes: 10 * 1024 * 1024, // Opcjonalnie: limit 10MB na plik
                     rollOnFileSizeLimit: true))
     .WriteTo.Logger(lc => lc
         .Filter.ByIncludingOnly(Matching.FromSource<PNDS_BackEnd_Prod.OPC_Client.OPCClient>())
-        .WriteTo.File("c:/PNDS/logs/OPC_Client-.log",
+        .WriteTo.File(LogPath + "OPC_Client-.log",
                     rollingInterval: RollingInterval.Day,
                     restrictedToMinimumLevel: LogEventLevel.Information,
-                    retainedFileCountLimit: 7,             // Przechowuj tylko 7 ostatnich plików (tydzień)
+                    retainedFileCountLimit: 30,             // Przechowuj tylko 7 ostatnich plików (tydzień)
                     fileSizeLimitBytes: 10 * 1024 * 1024, // Opcjonalnie: limit 10MB na plik
                     rollOnFileSizeLimit: true))
     .CreateLogger();
 
 
 
-var builder = WebApplication.CreateBuilder(args);
+
 
 builder.Host.UseSerilog();
 
@@ -113,4 +118,4 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-app.Run();
+await app.RunAsync();
