@@ -2,10 +2,10 @@
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Extensions.Configuration;
-using PNDS_BackEnd_Prod.Services;
+using PNDS_BackEnd_Dev.Services;
 using System.Reflection.Metadata.Ecma335;
 
-namespace PNDS_BackEnd_Prod.Services
+namespace PNDS_BackEnd_Dev.Services
 {
 
 

@@ -1,8 +1,8 @@
 ﻿using System.Text.Json;
-using PNDS_BackEnd_Prod.Controllers;
-using PNDS_BackEnd_Prod.Models;
+using PNDS_BackEnd_Dev.Controllers;
+using PNDS_BackEnd_Dev.Models;
 
-namespace PNDS_BackEnd_Prod.Services;
+namespace PNDS_BackEnd_Dev.Services;
 public class RecaptchaService
 {
     private readonly HttpClient _client;

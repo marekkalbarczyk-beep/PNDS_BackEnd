@@ -1,11 +1,11 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using PNDS_BackEnd_Prod.Services;
+using PNDS_BackEnd_Dev.Services;
 
-namespace PNDS_BackEnd_Prod.Controllers
+namespace PNDS_BackEnd_Dev.Controllers
 {
     [ApiController]
-    [Authorize]
+   // [Authorize]
     [Produces("application/json")]
     [Route("/data/J2Mooring")]
 

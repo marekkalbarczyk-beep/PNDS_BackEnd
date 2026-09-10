@@ -8,13 +8,13 @@ using Newtonsoft.Json.Linq;
 using Opc.Ua;
 using Opc.Ua.Client;
 using Opc.Ua.Configuration;
-using PNDS_BackEnd_Prod.Services;
+using PNDS_BackEnd_Dev.Services;
 using Serilog;
 using Serilog.Events;
 using Serilog.Extensions.Logging;
 
 
-namespace PNDS_BackEnd_Prod.OPC_Client
+namespace PNDS_BackEnd_Dev.OPC_Client
 {
 
     public readonly record struct OpcResult<T>(bool Status, T? Value);

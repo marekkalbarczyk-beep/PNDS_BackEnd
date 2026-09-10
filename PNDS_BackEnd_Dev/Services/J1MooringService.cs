@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using PNDS_BackEnd_Prod.OPC_Client;
+using PNDS_BackEnd_Dev.OPC_Client;
 
-namespace PNDS_BackEnd_Prod.Services
+namespace PNDS_BackEnd_Dev.Services
 {
     public class J1MooringData
     {
