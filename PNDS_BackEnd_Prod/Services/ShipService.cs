@@ -82,18 +82,6 @@ namespace PNDS_BackEnd_Prod.Services
 
         private static string ComputeSha256Hash(string rawData)
         {
-            //do usunięcia po testach 
-            //using (SHA256 sha256Hash = SHA256.Create())
-            //{
-            //    byte[] bytes = sha256Hash.ComputeHash(Encoding.UTF8.GetBytes(rawData));
-
-            //    StringBuilder builder = new StringBuilder();
-            //    for (int i = 0; i < bytes.Length; i++)
-            //    {
-            //        builder.Append(bytes[i].ToString("x2"));
-            //    }
-            //    return builder.ToString();
-            //}
             byte[] bytes = Encoding.UTF8.GetBytes(rawData);
             byte[] hash = SHA256.HashData(bytes);
 

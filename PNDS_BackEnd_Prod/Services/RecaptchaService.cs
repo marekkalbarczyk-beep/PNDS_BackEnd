@@ -37,9 +37,8 @@ public class RecaptchaService
             _logger.LogWarning("reCAPTCHA result is null");
             return false;
         }
-#if DEBUG
+
         _logger.LogInformation("reCAPTCHA score {score}", result.Score);
-#endif
         return result.Success && result.Score >= 0.5;
 
       

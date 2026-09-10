@@ -1,4 +1,4 @@
-﻿C:\Users\Marek.Kalbarczyk\source\repos\PNDS_BackEnd\PNDS_BackEnd_Dev\Controllers\authController.cs
+﻿C:\Users\Marek.Kalbarczyk\source\repos\PNDS_BackEnd\PNDS_BackEnd_Dev\Controllers\AuthController.cs
 C:\Users\Marek.Kalbarczyk\source\repos\PNDS_BackEnd\PNDS_BackEnd_Dev\Controllers\J1BerthingController.cs
 C:\Users\Marek.Kalbarczyk\source\repos\PNDS_BackEnd\PNDS_BackEnd_Dev\Controllers\J1MooringController.cs
 C:\Users\Marek.Kalbarczyk\source\repos\PNDS_BackEnd\PNDS_BackEnd_Dev\Controllers\J1SeaStateController.cs

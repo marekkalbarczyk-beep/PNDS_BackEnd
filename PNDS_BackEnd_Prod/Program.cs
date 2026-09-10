@@ -25,16 +25,10 @@ Log.Logger = new LoggerConfiguration()
                     fileSizeLimitBytes: 100 * 1024 * 1024, // Opcjonalnie: limit 100MB na plik
                     rollOnFileSizeLimit: true)
     .WriteTo.Logger(lc => lc
-        .Filter.ByIncludingOnly(Matching.FromSource<PNDS_BackEnd_Prod.Controllers.AuthController>())
+        .Filter.ByIncludingOnly(logEvent =>
+                Matching.FromSource<PNDS_BackEnd_Prod.Controllers.AuthController>()(logEvent) ||
+                Matching.FromSource<PNDS_BackEnd_Prod.Services.RecaptchaService>()(logEvent))
         .WriteTo.File(LogPath + "auth-.log",
-                    rollingInterval: RollingInterval.Day,
-                    restrictedToMinimumLevel: LogEventLevel.Information,
-                    retainedFileCountLimit: 30,             // Przechowuj tylko 7 ostatnich plików (tydzień)
-                    fileSizeLimitBytes: 10 * 1024 * 1024, // Opcjonalnie: limit 10MB na plik
-                    rollOnFileSizeLimit: true))
-    .WriteTo.Logger(lc => lc
-        .Filter.ByIncludingOnly(Matching.FromSource<PNDS_BackEnd_Prod.Services.RecaptchaService>())
-        .WriteTo.File(LogPath + "reCap-.log",
                     rollingInterval: RollingInterval.Day,
                     restrictedToMinimumLevel: LogEventLevel.Information,
                     retainedFileCountLimit: 30,             // Przechowuj tylko 7 ostatnich plików (tydzień)
